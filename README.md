@@ -20,7 +20,14 @@ By intercepting the communication layer, the thermostat believes it's communicat
 
 ## Quick Start
 
-### 1. Install Prerequisites
+### 1. Clone the Repository
+
+```bash
+git clone --recurse-submodules https://github.com/codykociemba/NoLongerEvil-Thermostat.git
+cd NoLongerEvil-Thermostat
+```
+
+### 2. Install Prerequisites
 
 Before building, you'll need to install some required packages:
 
@@ -49,7 +56,7 @@ Then install libusb using Homebrew (the build script will attempt to install thi
 brew install libusb
 ```
 
-### 2. Build the omap_loader tool
+### 3. Build the omap_loader tool
 
 ```bash
 ./build.sh
@@ -57,7 +64,7 @@ brew install libusb
 
 The build script will automatically detect your operating system (Linux, macOS, or Windows) and build the appropriate binary.
 
-### 3. Start the firmware installer
+### 4. Start the firmware installer
 
 **IMPORTANT: You must start the installer script BEFORE rebooting the device.**
 
@@ -77,7 +84,7 @@ sudo ./install.sh
 
 The script will wait for the device to enter DFU mode.
 
-### 4. Put your Nest device in DFU mode
+### 5. Put your Nest device in DFU mode
 
 Follow these steps carefully:
 
@@ -90,7 +97,7 @@ Follow these steps carefully:
 
 The firmware installer will automatically detect the device and flash the custom bootloader (x-load, u-boot) and kernel (uImage).
 
-### 5. Wait for the device to boot
+### 6. Wait for the device to boot
 
 After the firmware is flashed successfully, you should see our logo on the device screen:
 
@@ -101,7 +108,7 @@ After the firmware is flashed successfully, you should see our logo on the devic
 - Wait for the device to complete its boot sequence (this may take 3-4 minutes)
 - Do not disconnect or power off the device during this time
 
-### 6. Register your account
+### 7. Register your account
 
 Once the device has fully rebooted:
 
@@ -111,7 +118,7 @@ Once the device has fully rebooted:
 
 You will see a "No devices" screen that prompts you for an entry code.
 
-### 7. Link your device
+### 8. Link your device
 
 To link your Nest device to your NoLongerEvil account:
 
