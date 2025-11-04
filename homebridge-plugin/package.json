@@ -1,0 +1,33 @@
+{
+  "name": "homebridge-nolongerevil-thermostat",
+  "version": "1.0.0",
+  "description": "HomeBridge plugin for NoLongerEvil Thermostat",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "watch": "tsc -w",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [
+    "homebridge-plugin",
+    "homebridge",
+    "thermostat",
+    "nest",
+    "nolongerevil"
+  ],
+  "engines": {
+    "homebridge": ">=1.0.0",
+    "node": ">=14.0.0"
+  },
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "axios": "^1.6.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.0.0",
+    "homebridge": "^1.6.0"
+  }
+}
+

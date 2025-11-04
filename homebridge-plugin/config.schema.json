@@ -1,0 +1,40 @@
+{
+  "pluginAlias": "NoLongerEvilThermostat",
+  "pluginType": "platform",
+  "singular": true,
+  "schema": {
+    "type": "object",
+    "properties": {
+      "name": {
+        "title": "Platform Name",
+        "type": "string",
+        "required": true,
+        "default": "NoLongerEvil Thermostat",
+        "description": "Name for the NoLongerEvil Thermostat platform"
+      },
+      "apiUrl": {
+        "title": "API URL",
+        "type": "string",
+        "required": false,
+        "default": "https://nolongerevil.com/api",
+        "description": "Base URL for the NoLongerEvil API"
+      },
+      "apiKey": {
+        "title": "API Key",
+        "type": "string",
+        "required": true,
+        "description": "Your API key from the NoLongerEvil platform"
+      },
+      "pollInterval": {
+        "title": "Poll Interval (ms)",
+        "type": "integer",
+        "required": false,
+        "default": 60000,
+        "minimum": 10000,
+        "maximum": 600000,
+        "description": "How often to poll for device updates in milliseconds (10000-600000)"
+      }
+    }
+  }
+}
+
