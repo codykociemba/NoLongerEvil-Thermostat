@@ -59,6 +59,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #define OMAP_USB_BULK_IN 0x81
 #define OMAP_USB_BULK_OUT 0x01
 #define OMAP_ASIC_ID_LEN 69
+#define OMAP_USB_MAX_XFER (4 * 1024)
 
 #ifdef OMAP_IS_BIG_ENDIAN
 # define cpu_to_le32(v) (((v & 0xff) << 24) | ((v & 0xff00) << 8) | \
@@ -80,8 +81,8 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #define USBLOAD_CMD_MESSAGE PACK4('U','S','B','m')   /* debug message */
 
 /* USB transfer characteristics */
-#define USB_MAX_WAIT 5000
-#define USB_TIMEOUT 1000
+#define USB_MAX_WAIT 60000
+#define USB_TIMEOUT 10000
 #define USB_MAX_TIMEOUTS (USB_MAX_WAIT/USB_TIMEOUT)
 
 /* Datatypes
@@ -374,10 +375,26 @@ int process_args(struct arg_state * args)
     return 1;
   }
 
+  /* Set USB configuration */
+  int active_config = 0;
+  ret = libusb_get_configuration(dev, &active_config);
+  if(ret < 0)
+  {
+    log_error("warning: failed to query USB configuration: %s\n", libusb_error_name(ret));
+  }
+  else if(active_config != 1)
+  {
+    ret = libusb_set_configuration(dev, 1);
+    if(ret < 0 && ret != LIBUSB_ERROR_BUSY)
+    {
+      log_error("warning: failed to set USB configuration: %s\n", libusb_error_name(ret));
+    }
+  }
+
   if((ret = libusb_claim_interface(dev, 0)) < 0)
   {
-    log_error("failed to claim interface: %s\n", libusb_error_name(ret));
-    return ret;
+    log_error("warning: failed to claim interface: %s\n", libusb_error_name(ret));
+    /* Continue anyway - some devices don't have interfaces in DFU mode */
   }
 
   /* Communicate with the TI BootROM directly
@@ -496,7 +513,7 @@ bool omap_usb_write(libusb_device_handle * handle, unsigned char * data,
     int actualWrite = 0;
     int writeAmt = sizeLeft;
     /* Only send 512 bytes at a time. Helps with reliability sometimes. */
-    if(writeAmt > 512) { writeAmt = 512; }
+    if(writeAmt > OMAP_USB_MAX_XFER) { writeAmt = OMAP_USB_MAX_XFER; }
 
     usleep(1000);
     ret = libusb_bulk_transfer(handle, OMAP_USB_BULK_OUT, data+iter,
