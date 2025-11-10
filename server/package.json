@@ -1,0 +1,14 @@
+{
+  "name": "NoLongerEvil-API",
+  "version": "1.0.0",
+  "description": "Self-hostable No Longer Evil API server",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "node --watch index.js"
+  },
+  "dependencies": {
+    "convex": "^1.25.4",
+    "dotenv": "^16.4.5"
+  }
+}

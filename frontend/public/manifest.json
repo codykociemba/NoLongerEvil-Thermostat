@@ -1,0 +1,25 @@
+{
+  "name": "No Longer Evil Thermostat",
+  "short_name": "NLE Thermostat",
+  "description": "Repurposing bricked Nest Gen 1 & 2 thermostats with custom software",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0B0B0C",
+  "theme_color": "#0EA5E9",
+  "orientation": "portrait",
+  "categories": ["utilities", "lifestyle"],
+  "icons": [
+    {
+      "src": "/icons/icon-192x192.png",
+      "type": "image/png",
+      "sizes": "192x192",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/icon-512x512.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "any maskable"
+    }
+  ]
+}

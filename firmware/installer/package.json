@@ -1,0 +1,37 @@
+{
+  "name": "nolongerevil-installer",
+  "version": "1.0.0",
+  "description": "NoLongerEvil Thermostat Firmware Installer",
+  "main": "electron/main.js",
+  "author": "NoLongerEvil",
+  "license": "MIT",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "electron:dev": "concurrently --kill-others \"vite\" \"wait-on http://localhost:5173 && cross-env NODE_ENV=development electron .\"",
+    "package": "vite build && electron-forge package",
+    "make": "vite build && electron-forge make"
+  },
+  "dependencies": {
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "sudo-prompt": "^9.2.1",
+    "usb": "^2.11.0"
+  },
+  "devDependencies": {
+    "@electron-forge/cli": "^7.10.2",
+    "@electron-forge/maker-dmg": "^7.10.2",
+    "@electron-forge/maker-zip": "^7.10.2",
+    "@electron-forge/plugin-auto-unpack-natives": "^7.10.2",
+    "@vitejs/plugin-react": "^4.2.1",
+    "autoprefixer": "^10.4.16",
+    "concurrently": "^8.2.2",
+    "cross-env": "^7.0.3",
+    "electron": "^28.0.0",
+    "electron-builder": "^26.0.12",
+    "postcss": "^8.4.32",
+    "tailwindcss": "^3.4.0",
+    "vite": "^5.0.8",
+    "wait-on": "^7.2.0"
+  }
+}

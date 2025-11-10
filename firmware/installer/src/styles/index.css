@@ -1,0 +1,64 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow: hidden;
+}
+
+#root {
+  width: 100vw;
+  height: 100vh;
+}
+
+.app-drag {
+  -webkit-app-region: drag;
+}
+
+.app-no-drag {
+  -webkit-app-region: no-drag;
+}
+
+@layer components {
+  .btn {
+    @apply px-6 py-3 rounded-lg font-semibold transition-all duration-200 app-no-drag;
+  }
+
+  .btn-primary {
+    @apply btn bg-primary-600 text-white hover:bg-primary-700 active:bg-primary-800 disabled:bg-gray-600 disabled:cursor-not-allowed;
+  }
+
+  .btn-secondary {
+    @apply btn bg-gray-700 text-white hover:bg-gray-600 active:bg-gray-800;
+  }
+
+  .card {
+    @apply bg-slate-800 rounded-xl shadow-xl p-6;
+  }
+
+  .status-badge {
+    @apply inline-flex items-center gap-2 px-3 py-1 rounded-full text-sm font-medium;
+  }
+
+  .status-success {
+    @apply status-badge bg-green-500/20 text-green-400;
+  }
+
+  .status-warning {
+    @apply status-badge bg-yellow-500/20 text-yellow-400;
+  }
+
+  .status-error {
+    @apply status-badge bg-red-500/20 text-red-400;
+  }
+
+  .status-info {
+    @apply status-badge bg-blue-500/20 text-blue-400;
+  }
+}

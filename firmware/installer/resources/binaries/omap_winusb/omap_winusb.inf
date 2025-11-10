@@ -1,0 +1,154 @@
+; *****************************************************************************
+; Installation file for WIN USB driver for Texas Instruments Devices
+;
+; copyrights (c) 2011 Texas Instruments Inc.
+; 
+; Revision: 1.0   Initial version, Julian Gonzalez (juliang@ti.com)               
+;
+[Version]
+Signature = "$Windows NT$"
+Class = "TI Boards"
+ClassGUID={67AB1FAB-5952-462d-8A93-C88A4EA373C3}
+Provider = %ProviderName%
+DriverVer = 01/26/2010,1.0.0
+;CatalogFile=MyCatFile.cat
+; ================== Class section ==================
+
+[ClassInstall32]
+Addreg=MyDeviceClassReg
+
+[MyDeviceClassReg]
+HKR,,,0,%ClassName%
+HKR,,Icon,,-5
+
+; ========== Manufacturer/Models sections ===========
+
+[Manufacturer]
+%ProviderName% = MyDevice_WinUSB,NTx86,NTamd64
+
+[MyDevice_WinUSB.NTx86]
+%USB\MyDevice.DeviceDesc% =USB_Install, USB\VID_0451&PID_d00e
+%USB_OMAPV1030%     = USB_Install, USB\VID_0451&PID_d003
+%USB_OMAPV1035%     = USB_Install, USB\VID_0451&PID_d00B
+%USB_LOCOSTO%       = USB_Install, USB\VID_0451&PID_d004
+%USB_OMAPV1230%     = USB_Install, USB\VID_0451&PID_d008
+%USB_OMAP2430%     = USB_Install, USB\VID_0451&PID_d006
+%USB_OMAP3430%     = USB_Install, USB\VID_0451&PID_d009
+%USB_OMAP2420%      = USB_Install, USB\VID_0451&PID_d000
+%USB_OMAP3630%     = USB_Install, USB\VID_0451&PID_d00e
+%USB_OMAP4430%     = USB_Install, USB\VID_0451&PID_aaaa
+%USB_OMAP4430ES2%  = USB_Install, USB\VID_0451&PID_d00f
+%USB_OMAP4460%     = USB_Install, USB\VID_0451&PID_d010
+%USB_OMAP4470%     = USB_Install, USB\Vid_0451&Pid_d012
+
+[MyDevice_WinUSB.NTamd64]
+%USB\MyDevice.DeviceDesc% =USB_Install, USB\VID_0451&PID_d00e
+%USB_OMAPV1030%     = USB_Install, USB\VID_0451&PID_d003
+%USB_OMAPV1035%     = USB_Install, USB\VID_0451&PID_d00B
+%USB_LOCOSTO%       = USB_Install, USB\VID_0451&PID_d004
+%USB_OMAPV1230%     = USB_Install, USB\VID_0451&PID_d008
+%USB_OMAP2430%     = USB_Install, USB\VID_0451&PID_d006
+%USB_OMAP3430%     = USB_Install, USB\VID_0451&PID_d009
+%USB_OMAP2420%      = USB_Install, USB\VID_0451&PID_d000
+%USB_OMAP3630%     = USB_Install, USB\VID_0451&PID_d00e
+%USB_OMAP4430%     = USB_Install, USB\VID_0451&PID_aaaa
+%USB_OMAP4430ES2%  = USB_Install, USB\VID_0451&PID_d00f
+%USB_OMAP4460%     = USB_Install, USB\VID_0451&PID_d010
+%USB_OMAP4470%     = USB_Install, USB\Vid_0451&Pid_d012
+
+; =================== Installation ===================
+
+[USB_Install]
+Include=winusb.inf
+Needs=WINUSB.NT
+
+[USB_Install.Services]
+Include=winusb.inf
+AddService=WinUSB,0x00000002,WinUSB_ServiceInstall
+
+[WinUSB_ServiceInstall]
+DisplayName     = %WinUSB_SvcDesc%
+ServiceType     = 1		; SERVICE_KERNEL_DRIVER
+StartType       = 3		; SERVICE_DEMAND_START
+ErrorControl    = 1		; SERVICE_ERROR_NORMAL
+ServiceBinary   = %12%\WinUSB.sys		
+
+[USB_Install.Wdf]
+KmdfService=WINUSB, WinUsb_Install
+UmdfServiceOrder=WINUSB
+
+[WinUSB_Install]
+KmdfLibraryVersion=1.9
+
+[USB_Install.HW]
+AddReg=Dev_AddReg
+
+[Dev_AddReg]
+HKR,,DeviceInterfaceGUIDs,0x10000,"{00873FDF-61A8-11D1-AA5E-00C04FB1728B}"
+
+[USB_Install.CoInstallers]
+AddReg=CoInstallers_AddReg
+CopyFiles=CoInstallers_CopyFiles
+
+[CoInstallers_AddReg]
+HKR,,CoInstallers32,0x00010000,"WdfCoInstaller01009.dll,WdfCoInstaller","WinUSBCoInstaller2.dll"
+
+[CoInstallers_CopyFiles]
+WinUSBCoInstaller2.dll
+WdfCoInstaller01009.dll
+
+
+[DestinationDirs]
+CoInstallers_CopyFiles=11
+
+; ================= Source Media Section =====================
+
+[SourceDisksNames.x86]
+1 = %DISK_NAME%,,,\i386
+
+[SourceDisksNames.amd64]
+2 = %DISK_NAME%,,,\amd64
+
+[SourceDisksFiles.x86]
+WinUSBCoInstaller2.dll=1
+WdfCoInstaller01009.dll=1
+
+
+[SourceDisksFiles.amd64]
+WinUSBCoInstaller2.dll=2
+WdfCoInstaller01009.dll=2
+
+
+; Copy Files section
+;------------------------------------------------------------------------------
+[_CopyFiles_sys]
+winusb.sys
+
+;************************************************* *****************************
+; Destination Directories
+;------------------------------------------------------------------------------
+[DestinationDirs]
+DefaultDestDir = 12 ; %SystemRoot%\system32\drivers
+_CopyFiles_sys = 12
+
+; =================== Strings ===================
+
+[Strings]
+ProviderName="Texas Instruments"
+USB\MyDevice.DeviceDesc="OMAP Flash Driver"
+WinUSB_SvcDesc="TI WinUSB Driver"
+DISK_NAME="My Install Disk"
+ClassName       = "TI Boards"
+USB_OMAPV1030   = "OMAPV1030 USB device"
+USB_OMAPV1035   = "OMAPV1035 USB device"
+USB_LOCOSTO     = "LOCOSTO USB device"
+USB_OMAPV1230   = "OMAPV1230 USB device"
+USB_OMAP2430   = "OMAP2430 USB device"
+USB_OMAP3430   = "OMAP3430 USB device"
+USB_OMAP2420   = "OMAP2420 USB device"
+USB_OMAP3630   = "OMAP3630 USB device"
+USB_OMAP4430   = "OMAP4430 USB device"
+USB_OMAP4430ES2  = "OMAP4430 USB device"
+USB_OMAP4460 = "OMAP4460 USB device"
+USB_OMAP4470 = "OMAP4470 USB device"
+

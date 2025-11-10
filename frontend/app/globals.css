@@ -1,0 +1,370 @@
+@import "tailwindcss";
+
+@variant dark (&:where(.dark, .dark *));
+
+:root {
+  --radius: 1rem;
+}
+
+@theme inline {
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+
+  /* Brand colors */
+  --color-brand-50: #e6f8ff;
+  --color-brand-100: #ccefff;
+  --color-brand-200: #99dfff;
+  --color-brand-300: #66ceff;
+  --color-brand-400: #33beff;
+  --color-brand-500: #0ea5e9;
+  --color-brand-600: #0b86bf;
+  --color-brand-700: #086694;
+  --color-brand-800: #064769;
+  --color-brand-900: #03273f;
+
+  /* Mode colors - Heat */
+  --color-mode-heat-from: #f97316;
+  --color-mode-heat-to: #ef4444;
+  --color-mode-heat-glow: rgba(249, 115, 22, 0.3);
+
+  /* Mode colors - Cool */
+  --color-mode-cool-from: #3b82f6;
+  --color-mode-cool-to: #06b6d4;
+  --color-mode-cool-glow: rgba(59, 130, 246, 0.3);
+
+  /* Mode colors - Auto */
+  --color-mode-auto-from: #0ea5e9;
+  --color-mode-auto-to: #0284c7;
+  --color-mode-auto-glow: rgba(14, 165, 233, 0.3);
+
+  /* Mode colors - Off */
+  --color-mode-off-from: #a1a1aa;
+  --color-mode-off-to: #71717a;
+  --color-mode-off-glow: rgba(161, 161, 170, 0.2);
+
+  /* Fan/Success colors */
+  --color-fan-from: #10b981;
+  --color-fan-to: #059669;
+  --color-fan-glow: rgba(16, 185, 129, 0.3);
+
+  /* Surface/Glass colors */
+  --color-surface-light: rgba(248, 250, 252, 0.9);
+  --color-surface-light-alt: rgba(241, 245, 249, 0.7);
+  --color-surface-dark: rgba(30, 41, 59, 0.95);
+  --color-surface-dark-alt: rgba(15, 23, 42, 0.90);
+
+  /* Status colors */
+  --color-error-from: #ef4444;
+  --color-error-to: #dc2626;
+  --color-success-from: #10b981;
+  --color-success-to: #059669;
+  --color-warning-from: #f59e0b;
+  --color-warning-to: #d97706;
+
+  /* Custom shadows */
+  --shadow-soft: 0 10px 25px -10px rgba(0, 0, 0, 0.35);
+  --shadow-glow: 0 0 40px rgba(14, 165, 233, 0.3);
+  --shadow-lift: 0 20px 60px -15px rgba(0, 0, 0, 0.3);
+  --shadow-mode-heat: 0 8px 24px var(--color-mode-heat-glow);
+  --shadow-mode-cool: 0 8px 24px var(--color-mode-cool-glow);
+  --shadow-mode-auto: 0 8px 24px var(--color-mode-auto-glow);
+  --shadow-mode-off: 0 8px 24px var(--color-mode-off-glow);
+  --shadow-fan: 0 8px 24px var(--color-fan-glow);
+
+  /* Custom radius */
+  --radius-2xl: 1rem;
+}
+
+html, body, :root {
+  height: 100%;
+}
+
+body {
+  @apply bg-gradient-to-br from-slate-50 via-blue-50/30 to-slate-100/50 dark:from-slate-950 dark:via-slate-900 dark:to-blue-950/40 text-slate-900 dark:text-slate-50;
+  min-height: 100vh;
+}
+
+/* Premium glassmorphism surface */
+.surface {
+  @apply rounded-2xl border border-white/20 dark:border-white/10;
+  background: linear-gradient(
+    135deg,
+    rgba(248, 250, 252, 0.9) 0%,
+    rgba(241, 245, 249, 0.7) 100%
+  );
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  box-shadow:
+    0 8px 32px 0 rgba(14, 165, 233, 0.08),
+    0 2px 8px 0 rgba(0, 0, 0, 0.04),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.5),
+    inset 0 2px 4px 0 rgba(255, 255, 255, 0.8);
+  transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+  position: relative;
+}
+
+.dark .surface {
+  background: linear-gradient(
+    135deg,
+    rgba(30, 41, 59, 0.95) 0%,
+    rgba(15, 23, 42, 0.90) 100%
+  );
+  box-shadow:
+    0 8px 32px 0 rgba(0, 0, 0, 0.5),
+    0 2px 8px 0 rgba(14, 165, 233, 0.1),
+    inset 0 0 0 1px rgba(148, 163, 184, 0.12),
+    inset 0 2px 4px 0 rgba(203, 213, 225, 0.08);
+}
+
+.surface::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(135deg, rgba(255,255,255,0.3), rgba(255,255,255,0));
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+  opacity: 0.5;
+}
+
+.surface:hover {
+  box-shadow:
+    0 12px 48px 0 rgba(14, 165, 233, 0.15),
+    0 4px 12px 0 rgba(0, 0, 0, 0.08),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.6),
+    inset 0 2px 8px 0 rgba(255, 255, 255, 0.9);
+  transform: translateY(-4px) scale(1.01);
+}
+
+.dark .surface:hover {
+  box-shadow:
+    0 12px 48px 0 rgba(14, 165, 233, 0.2),
+    0 4px 12px 0 rgba(0, 0, 0, 0.4),
+    inset 0 0 0 1px rgba(148, 163, 184, 0.15),
+    inset 0 2px 8px 0 rgba(203, 213, 225, 0.1);
+}
+
+/* Gradient text utility */
+.gradient-text {
+  @apply bg-gradient-to-r from-brand-500 via-brand-400 to-brand-600 bg-clip-text text-transparent;
+}
+
+/* Mode gradient utilities */
+.gradient-heat {
+  background: linear-gradient(135deg, var(--color-mode-heat-from) 0%, var(--color-mode-heat-to) 100%);
+}
+
+.gradient-cool {
+  background: linear-gradient(135deg, var(--color-mode-cool-from) 0%, var(--color-mode-cool-to) 100%);
+}
+
+.gradient-auto {
+  background: linear-gradient(135deg, var(--color-mode-auto-from) 0%, var(--color-mode-auto-to) 100%);
+}
+
+.gradient-off {
+  background: linear-gradient(135deg, var(--color-mode-off-from) 0%, var(--color-mode-off-to) 100%);
+}
+
+.gradient-fan {
+  background: linear-gradient(135deg, var(--color-fan-from) 0%, var(--color-fan-to) 100%);
+}
+
+/* Glow effect utilities */
+.glow {
+  box-shadow: var(--shadow-glow);
+}
+
+.glow-heat {
+  box-shadow: var(--shadow-mode-heat);
+}
+
+.glow-cool {
+  box-shadow: var(--shadow-mode-cool);
+}
+
+.glow-auto {
+  box-shadow: var(--shadow-mode-auto);
+}
+
+.glow-off {
+  box-shadow: var(--shadow-mode-off);
+}
+
+.glow-fan {
+  box-shadow: var(--shadow-fan);
+}
+
+/* Pretty focus rings */
+* {
+  outline: none;
+}
+
+:focus-visible {
+  @apply ring-2 ring-brand-500 ring-offset-2 ring-offset-slate-50 dark:ring-offset-slate-950;
+}
+
+/* Smooth transitions */
+* {
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-slate-100 dark:bg-slate-900;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-slate-300 dark:bg-slate-700 rounded-full;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-brand-400 dark:bg-brand-600;
+}
+
+/* Hide scrollbar utility */
+.scrollbar-hide {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;  /* Chrome, Safari and Opera */
+}
+
+/* Animation keyframes */
+@keyframes shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+@keyframes breathe {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.8;
+    transform: scale(1.02);
+  }
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+@keyframes glow-pulse {
+  0%, 100% {
+    opacity: 0.5;
+    filter: blur(20px);
+  }
+  50% {
+    opacity: 0.8;
+    filter: blur(30px);
+  }
+}
+
+@keyframes ripple {
+  0% {
+    transform: scale(0);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(4);
+    opacity: 0;
+  }
+}
+
+@keyframes slide-up-fade {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Animation utilities */
+.animate-shimmer {
+  animation: shimmer 2s infinite;
+}
+
+.animate-breathe {
+  animation: breathe 3s ease-in-out infinite;
+}
+
+.animate-float {
+  animation: float 6s ease-in-out infinite;
+}
+
+.animate-glow-pulse {
+  animation: glow-pulse 2s ease-in-out infinite;
+}
+
+.animate-slide-up {
+  animation: slide-up-fade 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+/* Mobile Orientation Support */
+@media (orientation: landscape) and (max-height: 600px) {
+  /* Optimize for landscape on phones - make everything more compact */
+  .thermostat-dial-container {
+    transform: scale(0.8);
+  }
+
+  .dashboard-grid {
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  }
+
+  /* Reduce vertical padding in landscape */
+  main {
+    padding-top: 1rem !important;
+    padding-bottom: 1rem !important;
+  }
+}
+
+@media (orientation: landscape) and (min-width: 768px) and (max-width: 1024px) {
+  /* Tablet landscape optimization - use horizontal space better */
+  .dashboard-grid {
+    grid-template-columns: repeat(3, 1fr) !important;
+  }
+
+  /* Make dial and controls side-by-side on tablets */
+  .dashboard-layout {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2rem;
+  }
+}
+
+/* Safe area support for notched devices */
+@supports (padding: max(0px)) {
+  body {
+    padding-left: max(0px, env(safe-area-inset-left));
+    padding-right: max(0px, env(safe-area-inset-right));
+  }
+
+  main {
+    padding-left: max(1rem, env(safe-area-inset-left));
+    padding-right: max(1rem, env(safe-area-inset-right));
+  }
+}
