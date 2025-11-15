@@ -806,6 +806,12 @@ server.on('error', (err) => {
   console.error('[SERVER ERROR]', err);
 });
 
+function logRequest(method, url, status) {
+  console.log('    Method: ' + method);
+  console.log('    URL: ' + url);
+  console.log('    HTTP Status: ' + status);
+}
+
 function parseJsonBody(req) {
   return new Promise((resolve, reject) => {
     let body = '';

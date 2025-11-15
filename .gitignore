@@ -131,3 +131,7 @@ coverage/
 # Next.js
 .next/
 next-env.d.ts
+
+# Convex
+server/convex/_generated
+server/convex/data
