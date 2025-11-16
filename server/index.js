@@ -391,7 +391,7 @@ async function handlePut(req, res, bodyBuffer) {
           const existingTimeout = existingValue.fan_timer_timeout || 0;
           const nowSeconds = Math.floor(Date.now() / 1000);
 
-          if (existingTimeout > nowSeconds) {
+          if (existingTimeout > nowSeconds && obj.value?.fan_timer_timeout !== 0) {
             mergedValue.fan_timer_timeout = existingTimeout;
             mergedValue.fan_control_state = existingValue.fan_control_state;
             mergedValue.fan_timer_duration = existingValue.fan_timer_duration;
