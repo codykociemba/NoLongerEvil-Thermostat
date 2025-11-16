@@ -23,11 +23,11 @@ echo "distinguished_name = nlet_server" >> certs/csr.conf
 echo "" >> certs/csr.conf
 echo "[ nlet_server ]" >> certs/csr.conf
 
-read -p "    Input your Country Name (US) : " CERT_COUNTRY
+read -p "    Input your Country Name ($CERT_DEFAULT_COUNTRY) : " CERT_COUNTRY
 CERT_COUNTRY=${CERT_COUNTRY:-$CERT_DEFAULT_COUNTRY}
 echo "countryName = $CERT_COUNTRY" >> certs/csr.conf
 
-read -p "    Input your State or Province name (TX) : " CERT_STATE
+read -p "    Input your State or Province name ($CERT_DEFAULT_STATE) : " CERT_STATE
 CERT_STATE=${CERT_STATE:-$CERT_DEFAULT_STATE}
 echo "stateOrProvinceName = $CERT_STATE"  >> certs/csr.conf
 
@@ -104,10 +104,6 @@ echo "Project is ready for development. After updating the server code, run "
 echo "the \"buildServerDocker.sh\" script. This will build the docker container."
 echo "After building, you can run"
 echo ""
-echo "  docker compose pull"
-echo ""
-echo "then"
-echo ""
 echo "  docker compose up -d"
 echo ""
 echo "You can then access via the URLs below."
@@ -116,5 +112,5 @@ echo "  Server API : https://localhost"
 echo "  Control API : http://localhost:8081"
 echo "  Convex Backend : http://localhost:3210"
 echo "  Convex Dashboard : http://localhost:6791"
-echo "      Admin Key : $GENERATED_KEY
+echo "      Admin Key : $GENERATED_KEY"
 echo ""
