@@ -14,12 +14,14 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Setup Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: "22"
+          cache: "npm"
+          cache-dependency-path: firmware/installer/package-lock.json
 
       - name: Install libusb + build tooling (Ubuntu)
         if: matrix.os == 'ubuntu-latest'
@@ -50,40 +52,28 @@ jobs:
         working-directory: firmware/installer
         run: npm run build
 
-      - name: Prepare for app notarization
+      - name: Prepare Apple API key
         if: matrix.os == 'macos-latest'
         run: |
-          mkdir -p ~/private_keys/
-          echo '${{ secrets.API_KEY }}' > ~/private_keys/AuthKey_${{ secrets.API_KEY_ID }}.p8
+          mkdir -p /tmp/private_keys/
+          echo '${{ secrets.API_KEY }}' > /tmp/private_keys/AuthKey_${{ secrets.API_KEY_ID }}.p8
 
-      - name: Build Electron app (macOS)
+      - name: Decode macOS signing certificate
         if: matrix.os == 'macos-latest'
-        uses: samuelmeuli/action-electron-builder@v1
+        run: |
+          echo "${{ secrets.MAC_CERTS }}" | base64 --decode > /tmp/mac-certs.p12
+
+      - name: Build, sign and notarize Electron app (macOS)
+        if: matrix.os == 'macos-latest'
+        working-directory: firmware/installer
         env:
-          API_KEY_ID: ${{ secrets.API_KEY_ID }}
-          API_KEY_ISSUER_ID: ${{ secrets.API_KEY_ISSUER_ID }}
-          APPLE_API_KEY: ${{ secrets.API_KEY }}
+          CSC_LINK: /tmp/mac-certs.p12
+          CSC_KEY_PASSWORD: ${{ secrets.MAC_CERTS_PASSWORD }}
+          APPLE_API_KEY: /tmp/private_keys/AuthKey_${{ secrets.API_KEY_ID }}.p8
           APPLE_API_KEY_ID: ${{ secrets.API_KEY_ID }}
           APPLE_API_ISSUER: ${{ secrets.API_KEY_ISSUER_ID }}
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          package_root: firmware/installer
-          mac_certs: ${{ secrets.MAC_CERTS }}
-          mac_certs_password: ${{ secrets.MAC_CERTS_PASSWORD }}
-          skip_build: false
-          args: --publish never
-
-      - name: Show notarization error log
-        if: failure() && matrix.os == 'macos-latest'
-        working-directory: firmware/installer
         run: |
-          if [ -f notarization-error.log ]; then
-            echo "=== Notarization Error Log (sanitized) ==="
-            cat notarization-error.log | sed -E 's/([A-Z0-9]{10})[A-Z0-9]+/\1***/g' | sed 's|/Users/[^/]+|/Users/***|g'
-          else
-            echo "No notarization-error.log found"
-            echo "Notarization failed but no error log was generated"
-          fi
+          npx electron-builder --mac --publish never
 
       - name: Upload artifacts (macOS)
         if: matrix.os == 'macos-latest'
@@ -94,12 +84,9 @@ jobs:
 
       - name: Build Electron app (Linux)
         if: matrix.os == 'ubuntu-latest'
-        uses: samuelmeuli/action-electron-builder@v1
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          package_root: firmware/installer
-          skip_build: false
-          args: --linux AppImage --publish never
+        working-directory: firmware/installer
+        run: |
+          npx electron-builder --linux AppImage --publish never
 
       - name: Upload artifacts (Linux)
         if: matrix.os == 'ubuntu-latest'

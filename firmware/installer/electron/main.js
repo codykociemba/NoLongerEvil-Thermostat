@@ -17,7 +17,7 @@ function createWindow() {
     minHeight: 700,
     center: true,
     title: 'No Longer Evil Thermostat Setup',
-    icon: path.join(__dirname, '../build/icon.png'),
+    icon: path.join(__dirname, '../build/appicon.png'),
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       nodeIntegration: false,

@@ -20,8 +20,6 @@
   "build": {
     "appId": "com.nolongerevil.installer",
     "productName": "NoLongerEvil Installer",
-    "icon": "appicon.png",
-    "afterSign": "build/notarize.js",
     "directories": {
       "output": "dist"
     },
@@ -37,12 +35,14 @@
       "gatekeeperAssess": false,
       "entitlements": "build/entitlements.mac.plist",
       "entitlementsInherit": "build/entitlements.mac.plist",
+      "notarize": true,
       "target": [
         {
           "target": "zip",
           "arch": [
             "x64",
-            "arm64"
+            "arm64",
+            "universal"
           ]
         }
       ]
@@ -61,7 +61,6 @@
     "usb": "^2.11.0"
   },
   "devDependencies": {
-    "@electron/notarize": "^2.2.1",
     "@vitejs/plugin-react": "^4.2.1",
     "autoprefixer": "^10.4.16",
     "concurrently": "^8.2.2",
