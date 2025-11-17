@@ -3,6 +3,8 @@ name: Build Electron App
 on:
   push:
     branches: [open-source-prototype]
+    tags:
+      - 'v*'
 
 jobs:
   build:
@@ -67,30 +69,43 @@ jobs:
         if: matrix.os == 'macos-latest'
         working-directory: firmware/installer
         env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CSC_LINK: /tmp/mac-certs.p12
           CSC_KEY_PASSWORD: ${{ secrets.MAC_CERTS_PASSWORD }}
           APPLE_API_KEY: /tmp/private_keys/AuthKey_${{ secrets.API_KEY_ID }}.p8
           APPLE_API_KEY_ID: ${{ secrets.API_KEY_ID }}
           APPLE_API_ISSUER: ${{ secrets.API_KEY_ISSUER_ID }}
         run: |
-          npx electron-builder --mac --publish never
+          npx electron-builder --mac --publish onTag
 
-      - name: Upload artifacts (macOS)
+      - name: Upload macOS x64 artifact
         if: matrix.os == 'macos-latest'
         uses: actions/upload-artifact@v4
         with:
-          name: electron-app-macos
-          path: firmware/installer/dist/*.zip
+          name: nolongerevil-macos-x64
+          path: firmware/installer/dist/*x64*.zip
+          if-no-files-found: warn
+
+      - name: Upload macOS arm64 artifact
+        if: matrix.os == 'macos-latest'
+        uses: actions/upload-artifact@v4
+        with:
+          name: nolongerevil-macos-arm64
+          path: firmware/installer/dist/*arm64*.zip
+          if-no-files-found: warn
 
       - name: Build Electron app (Linux)
         if: matrix.os == 'ubuntu-latest'
         working-directory: firmware/installer
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          npx electron-builder --linux AppImage --publish never
+          npx electron-builder --linux AppImage --publish onTag
 
-      - name: Upload artifacts (Linux)
+      - name: Upload Linux AppImage artifact
         if: matrix.os == 'ubuntu-latest'
         uses: actions/upload-artifact@v4
         with:
-          name: electron-app-linux
+          name: nolongerevil-linux-appimage
           path: firmware/installer/dist/*.AppImage
+          if-no-files-found: error

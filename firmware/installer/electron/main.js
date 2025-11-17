@@ -98,15 +98,69 @@ ipcMain.handle('install-firmware', async (event, options) => {
 ipcMain.handle('install-libusb', async () => {
   const { exec } = require('child_process');
   const util = require('util');
+  const fs = require('fs');
   const execPromise = util.promisify(exec);
 
   try {
-    if (process.platform === 'darwin') {
-      const brewPath = process.arch === 'arm64' ? '/opt/homebrew/bin/brew' : '/usr/local/bin/brew';
-      await execPromise(`${brewPath} install libusb`);
-      return { success: true };
+    if (process.platform !== 'darwin') {
+      return { success: false, error: 'Only supported on macOS' };
     }
-    return { success: false, error: 'Only supported on macOS' };
+
+    // Find Homebrew installation
+    const possibleBrewPaths = [
+      '/opt/homebrew/bin/brew', // Apple Silicon
+      '/usr/local/bin/brew',    // Intel
+    ];
+
+    let brewPath = null;
+    for (const path of possibleBrewPaths) {
+      if (fs.existsSync(path)) {
+        brewPath = path;
+        break;
+      }
+    }
+
+    // If not found in standard locations, try to find via which
+    if (!brewPath) {
+      try {
+        const { stdout } = await execPromise('which brew');
+        brewPath = stdout.trim();
+      } catch (e) {
+        // which brew failed, brew not found
+      }
+    }
+
+    // If Homebrew not found, install it
+    if (!brewPath) {
+      try {
+        // Install Homebrew using official install script
+        await execPromise('/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"');
+
+        // Check standard locations again
+        for (const path of possibleBrewPaths) {
+          if (fs.existsSync(path)) {
+            brewPath = path;
+            break;
+          }
+        }
+
+        if (!brewPath) {
+          return {
+            success: false,
+            error: 'Homebrew installation completed but could not locate brew executable. Please restart the application.'
+          };
+        }
+      } catch (installError) {
+        return {
+          success: false,
+          error: `Failed to install Homebrew: ${installError.message}. Please install manually from https://brew.sh`
+        };
+      }
+    }
+
+    // Install libusb and pkg-config using found brew path
+    await execPromise(`${brewPath} install libusb pkg-config`);
+    return { success: true };
   } catch (error) {
     return { success: false, error: error.message };
   }
