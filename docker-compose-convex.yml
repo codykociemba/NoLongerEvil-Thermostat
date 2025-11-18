@@ -1,4 +1,16 @@
 services:
+  nolongerevil:
+    container_name: nolongerevil
+    image: nolongerevil
+    restart: unless-stopped
+    ports:
+      - 80:80
+    volumes:
+      - ./server/.env.local:/app/.env.local
+    depends_on:
+      - backend
+      - dashboard
+
   backend:
     # Change this to :${REV} if you want to pin to a specific version
     image: ghcr.io/get-convex/convex-backend:latest
@@ -8,7 +20,7 @@ services:
       - "${PORT:-3210}:3210"
       - "${SITE_PROXY_PORT:-3211}:3211"
     volumes:
-      - data:/convex/data
+      - ./convex/data:/convex/data
     environment:
       - ACTIONS_USER_TIMEOUT_SECS
       - AWS_ACCESS_KEY_ID
@@ -56,6 +68,3 @@ services:
     depends_on:
       backend:
         condition: service_healthy
-
-volumes:
-  data:

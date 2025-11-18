@@ -146,7 +146,7 @@ write_env_file() {
   update_env_value "API_ORIGIN" "$1"
   update_env_value "PROXY_PORT" "$2"
   update_env_value "CONTROL_PORT" "$3"
-  cp "$ENV_TEMPLATE" "$SERVER_DIR/.env"
+  cp "$ENV_TEMPLATE" "$SERVER_DIR/.env.local"
 }
 
 generate_certs() {
@@ -260,6 +260,82 @@ launch_installer() {
 
   echo "[✓] Starting Firmware installer GUI..."
   npm run electron:dev
+}
+
+setup_selfhost() {
+  # Here is where we can put the different supported backend setup.
+  # Right now only Convex...
+  local which_backend="CONVEX"
+
+  # Question here on which setup the user wants to use
+  # which_backend=$(prompt_value "Which backend do you want to use?" "CONVEX")
+  case $which_backend in
+    CONVEX)
+      setup_convex
+      ;;
+    MQTT)
+      setup_mqtt
+      ;;
+  esac
+  
+  build_server_image
+
+  echo "Self-Host setup complete for $which_backend. You can "
+  echo "now run with docker compose."
+  echo ""
+  echo "  docker compose up -d"
+  echo ""
+}
+
+setup_convex() {
+  local generated_admin_key=""
+
+  echo "[→] Setup docker-compose.yml"
+  cp docker-compose-convex.yml docker-compose.yml
+
+  if [ -d $ROOT_DIR/convex ]; then
+    if prompt_yes_no "Convex data folder already exists. Do you want to recreate?" "n"; then
+      rm -fr $ROOT_DIR/convex
+      mkdir -p $ROOT_DIR/convex/data
+    fi
+  fi
+
+  echo "[→] Starting Convex Backend..."
+  docker compose up -d backend
+  echo "[→] Getting Convex Admin Key..."
+  generated_admin_key=$(docker compose exec backend ./generate_admin_key.sh)
+  echo ""
+  echo "[✓] Key = $generated_admin_key"
+  echo ""
+
+  echo "[→] Updating Server .env.local for Convex Initialization"
+  update_env_value "CONVEX_SELF_HOSTED_URL" "http://127.0.0.1:3210"
+  update_env_value "CONVEX_SELF_HOSTED_ADMIN_KEY" "$generated_admin_key"
+  cp $ENV_TEMPLATE $SERVER_DIR/.env.local
+
+  echo "[→] Initializing Server and Convex"
+  cd $SERVER_DIR
+  npm install
+  npx convex deploy
+  echo "[→] Stopping Convex Backend."
+  cd $ROOT_DIR
+  docker compose stop backend
+  
+  echo "[→] Update Server .env.local to use Convex Docker"
+  update_env_value "CONVEX_SELF_HOSTED_URL" "http://backend:3210"
+  update_env_value "CONVEX_URL" "http://backend:3210"
+  echo ""
+}
+
+setup_mqtt() {
+  echo "Setup MQTT"
+}
+
+build_server_image() {
+  cd $ROOT_DIR
+  echo "[→] Build nolongerevil docker image."
+  docker build -t nolongerevil .
+  echo ""
 }
 
 echo "============================================="
@@ -446,11 +522,18 @@ if [ "$api_origin" = "https://backdoor.nolongerevil.com" ]; then
   echo "1. Go to https://nolongerevil.com"
   echo "2. Enter your entry code when prompted"
   echo "3. Your Nest will connect to the NoLongerEvil service"
-else
-  echo "After flashing firmware:"
-  echo "1. Start your self-hosted server:"
-  echo "   cd server && npm install && npm run start"
-  echo "2. Your Nest will connect to: $api_origin"
-fi
+  echo ""
 
-echo ""
+  exit 0
+else
+  if prompt_yes_no "Create Self-Hosting Server" "n"; then
+    setup_selfhost
+    echo ""
+  else
+    echo "After flashing firmware:"
+    echo "1. Start your self-hosted server:"
+    echo "   cd server && npm install && npm run start"
+    echo "2. Your Nest will connect to: $api_origin"
+    echo ""
+  fi
+fi
