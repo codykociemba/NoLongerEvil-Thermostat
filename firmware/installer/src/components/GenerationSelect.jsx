@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import nestGen1 from '../assets/nest-gen1.png';
+import nestGen2 from '../assets/nest-gen2.png';
 
 function GenerationSelect({ onNext, onBack }) {
   const [selectedGeneration, setSelectedGeneration] = useState(null);
@@ -27,7 +29,7 @@ function GenerationSelect({ onNext, onBack }) {
           >
             <div className="aspect-square rounded-lg overflow-hidden bg-white">
               <img
-                src="/nest-gen1.png"
+                src={nestGen1}
                 alt="Nest Generation 1"
                 className="w-full h-full object-contain"
               />
@@ -55,7 +57,7 @@ function GenerationSelect({ onNext, onBack }) {
           >
             <div className="aspect-square rounded-lg overflow-hidden bg-white">
               <img
-                src="/nest-gen2.png"
+                src={nestGen2}
                 alt="Nest Generation 2"
                 className="w-full h-full object-contain"
               />
