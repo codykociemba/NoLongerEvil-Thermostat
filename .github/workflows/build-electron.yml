@@ -187,15 +187,7 @@ jobs:
         with:
           name: nolongerevil-macos-x64
           path: firmware/installer/dist/*x64*.zip
-          if-no-files-found: warn
-
-      - name: Upload macOS arm64 artifact
-        if: matrix.os == 'macos-latest'
-        uses: actions/upload-artifact@v4
-        with:
-          name: nolongerevil-macos-arm64
-          path: firmware/installer/dist/*arm64*.zip
-          if-no-files-found: warn
+          if-no-files-found: error
 
       - name: Build Electron app (Linux)
         if: matrix.os == 'ubuntu-latest'

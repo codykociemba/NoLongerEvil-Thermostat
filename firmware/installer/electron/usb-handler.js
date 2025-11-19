@@ -68,20 +68,13 @@ async function checkLibusb() {
     return true;
   }
 
-  return new Promise((resolve) => {
-    const { exec } = require('child_process');
-
-    if (process.platform === 'darwin') {
-      const brewPath = process.arch === 'arm64' ? '/opt/homebrew/bin/brew' : '/usr/local/bin/brew';
-      exec(`${brewPath} list libusb`, (error) => {
-        resolve(!error);
-      });
-    } else if (process.platform === 'linux') {
-      exec('pkg-config --exists libusb-1.0', (error) => {
-        resolve(!error);
-      });
-    }
-  });
+  try {
+    require('usb');
+    return true;
+  } catch (error) {
+    console.error('USB module load error:', error);
+    return false;
+  }
 }
 
 async function checkIsAdmin() {
@@ -142,7 +135,7 @@ async function checkSystem() {
       hasWindowsDriver,
       binaryPath,
       missingFiles,
-      ready: missingFiles.length === 0 && (!needsLibusb || hasLibusb) && (!needsAdmin || isAdmin) && (!needsWindowsDriver || hasWindowsDriver)
+      ready: missingFiles.length === 0 && (!needsAdmin || isAdmin) && (!needsWindowsDriver || hasWindowsDriver)
     };
   } catch (error) {
     return {
