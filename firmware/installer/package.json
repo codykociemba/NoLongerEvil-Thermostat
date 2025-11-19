@@ -32,7 +32,9 @@
       "node_modules/**/*"
     ],
     "asarUnpack": [
-      "node_modules/usb/**/*"
+      "node_modules/usb/**/*",
+      "resources/binaries/**/*",
+      "resources/firmware/**/*"
     ],
     "artifactName": "nolongerevil-installer-${os}-${arch}.${ext}",
     "mac": {
