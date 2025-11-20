@@ -6,7 +6,7 @@
  */
 
 import * as https from 'https';
-import type { WeatherData, ConvexWeatherCache } from '../lib/types';
+import type { WeatherData, StateWeatherCache } from '../lib/types';
 import { ConvexService } from './ConvexService';
 import { environment } from '../config/environment';
 
@@ -80,7 +80,7 @@ export class WeatherService {
   private async getCachedWeather(
     postalCode: string,
     country: string
-  ): Promise<ConvexWeatherCache | null> {
+  ): Promise<StateWeatherCache | null> {
     const cached = await this.convex.getWeather(postalCode, country);
 
     if (!cached) {

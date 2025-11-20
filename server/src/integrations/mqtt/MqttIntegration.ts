@@ -13,7 +13,6 @@ import * as mqtt from 'mqtt';
 import { BaseIntegration } from '../BaseIntegration';
 import { DeviceStateChange, MqttConfig } from '../types';
 import { DeviceStateService } from '../../services/DeviceStateService';
-import { ConvexService } from '../../services/ConvexService';
 import { SubscriptionManager } from '../../services/SubscriptionManager';
 import {
   parseObjectKey,
@@ -34,12 +33,13 @@ import {
   isEcoActive,
   nestPresetToHA,
 } from './helpers';
+import { AbstractDeviceStateManager } from '@/services/AbstractDeviceStateManager';
 
 export class MqttIntegration extends BaseIntegration {
   private client: mqtt.MqttClient | null = null;
   private config: MqttConfig;
   private deviceState: DeviceStateService;
-  private convex: ConvexService;
+  private deviceStateManager: AbstractDeviceStateManager;
   private subscriptionManager: SubscriptionManager;
   private userDeviceSerials: Set<string> = new Set();
   private isReady: boolean = false;
@@ -48,7 +48,7 @@ export class MqttIntegration extends BaseIntegration {
     userId: string,
     config: MqttConfig,
     deviceState: DeviceStateService,
-    convex: ConvexService,
+    deviceStateManager: AbstractDeviceStateManager,
     subscriptionManager: SubscriptionManager
   ) {
     super(userId, 'mqtt');
@@ -61,7 +61,7 @@ export class MqttIntegration extends BaseIntegration {
       ...config, // User config overrides defaults
     };
     this.deviceState = deviceState;
-    this.convex = convex;
+    this.deviceStateManager = deviceStateManager;
     this.subscriptionManager = subscriptionManager;
   }
 
@@ -95,9 +95,9 @@ export class MqttIntegration extends BaseIntegration {
    */
   private async loadUserDevices(): Promise<void> {
     try {
-      const ownedDevices = await this.convex.listUserDevices(this.userId);
+      const ownedDevices = await this.deviceStateManager.listUserDevices(this.userId);
 
-      const sharedDevices = await this.convex.getSharedWithMe(this.userId);
+      const sharedDevices = await this.deviceStateManager.getSharedWithMe(this.userId);
 
       this.userDeviceSerials.clear();
       for (const device of ownedDevices) {
@@ -554,7 +554,7 @@ export class MqttIntegration extends BaseIntegration {
 
       if (outdoorTempCelsius === undefined || outdoorTempCelsius === null) {
         try {
-          const userWeather = await this.convex.getUserWeather(this.userId);
+          const userWeather = await this.deviceStateManager.getUserWeather(this.userId);
           if (userWeather?.current?.temp_c !== undefined) {
             outdoorTempCelsius = userWeather.current.temp_c;
           }

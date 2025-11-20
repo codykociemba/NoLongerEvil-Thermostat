@@ -9,16 +9,16 @@
  */
 
 import type { DeviceObject, DeviceStateStore } from '../lib/types';
-import { ConvexService } from './ConvexService';
 import type { IntegrationManager } from '../integrations/IntegrationManager';
+import { AbstractDeviceStateManager } from './AbstractDeviceStateManager';
 
 export class DeviceStateService {
   private cache: DeviceStateStore = {};
-  private convex: ConvexService;
+  private deviceStateManager: AbstractDeviceStateManager;
   private integrationManager: IntegrationManager | null = null;
 
-  constructor(convex: ConvexService) {
-    this.convex = convex;
+  constructor(deviceStateManager: AbstractDeviceStateManager) {
+    this.deviceStateManager = deviceStateManager;
   }
 
   /**
@@ -39,7 +39,7 @@ export class DeviceStateService {
       return this.cache[serial][objectKey];
     }
 
-    const convexObject = await this.convex.getState(serial, objectKey);
+    const convexObject = await this.deviceStateManager.getState(serial, objectKey);
     if (convexObject) {
       this.cacheObject(serial, convexObject);
       return convexObject;
@@ -57,7 +57,7 @@ export class DeviceStateService {
       return this.cache[serial];
     }
 
-    const allState = await this.convex.getAllState();
+    const allState = await this.deviceStateManager.getAllState();
 
     this.cache = { ...this.cache, ...allState };
 
@@ -87,7 +87,7 @@ export class DeviceStateService {
 
     this.cacheObject(serial, deviceObject);
 
-    this.convex.upsertState(serial, objectKey, revision, timestamp, value).catch(error => {
+    this.deviceStateManager.upsertState(serial, objectKey, revision, timestamp, value).catch(error => {
       console.error(`[DeviceStateService] Failed to persist ${serial}/${objectKey} to Convex:`, error);
     });
 
@@ -143,7 +143,7 @@ export class DeviceStateService {
    * Used when device first connects
    */
   async hydrateFromConvex(serial: string): Promise<void> {
-    const allState = await this.convex.getAllState();
+    const allState = await this.deviceStateManager.getAllState();
 
     if (allState[serial]) {
       for (const [key, obj] of Object.entries(allState[serial])) {

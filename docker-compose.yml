@@ -2,6 +2,7 @@ services:
   nolongerevil:
     container_name: nolongerevil
     image: nolongerevil
+    build: .
     restart: unless-stopped
     ports:
       - 80:80

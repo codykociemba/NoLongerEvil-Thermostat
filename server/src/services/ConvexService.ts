@@ -8,14 +8,15 @@ import { ConvexHttpClient } from 'convex/browser';
 import type {
   DeviceObject,
   DeviceOwner,
-  ConvexEntryKey,
-  ConvexWeatherCache,
+  StateEntryKey,
+  StateWeatherCache,
   WeatherData,
   DeviceStateStore,
 } from '../lib/types';
 import { environment } from '../config/environment';
+import { AbstractDeviceStateManager } from './AbstractDeviceStateManager';
 
-export class ConvexService {
+export class ConvexService extends AbstractDeviceStateManager {
   private client: ConvexHttpClient | null = null;
   private initPromise: Promise<ConvexHttpClient | null> | null = null;
 
@@ -128,7 +129,7 @@ export class ConvexService {
   /**
    * Generate entry key for device pairing
    */
-  async generateEntryKey(serial: string, ttlSeconds: number): Promise<ConvexEntryKey | null> {
+  async generateEntryKey(serial: string, ttlSeconds: number): Promise<StateEntryKey | null> {
     const client = await this.getClient();
     if (!client) {
       return null;
@@ -215,7 +216,7 @@ export class ConvexService {
   /**
    * Get cached weather data
    */
-  async getWeather(postalCode: string, country: string): Promise<ConvexWeatherCache | null> {
+  async getWeather(postalCode: string, country: string): Promise<StateWeatherCache | null> {
     const client = await this.getClient();
     if (!client) {
       return null;

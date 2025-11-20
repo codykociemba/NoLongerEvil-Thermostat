@@ -126,24 +126,24 @@ export interface EnvironmentConfig {
 }
 
 /**
- * Convex Device Owner Response
+ * State Device Owner Response
  */
 export interface DeviceOwner {
   userId: string;
 }
 
 /**
- * Convex Entry Key Response
+ * State Entry Key Response
  */
-export interface ConvexEntryKey {
+export interface StateEntryKey {
   code: string;
   expiresAt: number;
 }
 
 /**
- * Convex Weather Cache Entry
+ * State Weather Cache Entry
  */
-export interface ConvexWeatherCache {
+export interface StateWeatherCache {
   data: WeatherData;
   fetchedAt: number;
 }

@@ -7,21 +7,21 @@
 
 import { BaseIntegration } from './BaseIntegration';
 import { DeviceStateChange } from './types';
-import { ConvexService } from '../services/ConvexService';
 import { DeviceStateService } from '../services/DeviceStateService';
 import { SubscriptionManager } from '../services/SubscriptionManager';
+import { AbstractDeviceStateManager } from '@/services/AbstractDeviceStateManager';
 
 export class IntegrationManager {
   private integrations: Map<string, BaseIntegration> = new Map();
-  private convex: ConvexService | null = null;
+  private deviceStateManager: AbstractDeviceStateManager | null = null;
   private deviceState: DeviceStateService | null = null;
   private subscriptionManager: SubscriptionManager | null = null;
 
   /**
    * Initialize integration manager and load all enabled integrations
    */
-  async initialize(convex: ConvexService, deviceState: DeviceStateService, subscriptionManager: SubscriptionManager): Promise<void> {
-    this.convex = convex;
+  async initialize(deviceStateManager: AbstractDeviceStateManager, deviceState: DeviceStateService, subscriptionManager: SubscriptionManager): Promise<void> {
+    this.deviceStateManager = deviceStateManager;
     this.deviceState = deviceState;
     this.subscriptionManager = subscriptionManager;
 
@@ -29,7 +29,7 @@ export class IntegrationManager {
 
     try {
       // Load all enabled MQTT integrations from Convex
-      const mqttIntegrations = await this.convex.getAllEnabledMqttIntegrations();
+      const mqttIntegrations = await this.deviceStateManager.getAllEnabledMqttIntegrations();
 
       console.log(`[IntegrationManager] Found ${mqttIntegrations.length} enabled MQTT integrations`);
 
@@ -52,11 +52,11 @@ export class IntegrationManager {
       // Lazy load MQTT integration to avoid loading mqtt library if not used
       const { MqttIntegration } = await import('./mqtt/MqttIntegration');
 
-      if (!this.convex || !this.deviceState || !this.subscriptionManager) {
+      if (!this.deviceStateManager || !this.deviceState || !this.subscriptionManager) {
         throw new Error('IntegrationManager not initialized');
       }
 
-      const integration = new MqttIntegration(userId, config, this.deviceState, this.convex, this.subscriptionManager);
+      const integration = new MqttIntegration(userId, config, this.deviceState, this.deviceStateManager, this.subscriptionManager);
       await integration.initialize();
 
       const key = `mqtt:${userId}`;
@@ -139,8 +139,8 @@ export class IntegrationManager {
     await this.shutdown();
 
     // Reinitialize
-    if (this.convex && this.deviceState && this.subscriptionManager) {
-      await this.initialize(this.convex, this.deviceState, this.subscriptionManager);
+    if (this.deviceStateManager && this.deviceState && this.subscriptionManager) {
+      await this.initialize(this.deviceStateManager, this.deviceState, this.subscriptionManager);
     }
   }
 
