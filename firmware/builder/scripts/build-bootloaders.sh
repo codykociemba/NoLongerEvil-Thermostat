@@ -34,7 +34,8 @@ build_xloader() {
     make ARCH=arm CROSS_COMPILE=$TOOLCHAIN_PREFIX j49-usb-loader_config
   else
     echo "[→] Configuring x-loader for Gen 1 (Diamond)..."
-    make ARCH=arm CROSS_COMPILE=$TOOLCHAIN_PREFIX diamond_config
+    sed -i '/^[[:space:]]*puts("Images exhausted\\n");[[:space:]]*$/i\        do_usb();' lib/board.c # force x-loader to load usb when it fails to load anything else (instead of hang)
+    make ARCH=arm CROSS_COMPILE=$TOOLCHAIN_PREFIX diamond-usb-loader_config
   fi
 
   make ARCH=arm CROSS_COMPILE=$TOOLCHAIN_PREFIX
