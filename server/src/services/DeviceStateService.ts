@@ -8,7 +8,7 @@
  * - Subscription notifications
  */
 
-import type { DeviceObject, DeviceStateStore } from '../lib/types';
+import type { DeviceObject, DeviceStateStore, DeviceOwner } from '../lib/types';
 import { ConvexService } from './ConvexService';
 import type { IntegrationManager } from '../integrations/IntegrationManager';
 
@@ -188,6 +188,10 @@ export class DeviceStateService {
    */
   getAllState(): DeviceStateStore {
     return JSON.parse(JSON.stringify(this.cache));
+  }
+
+  async getDeviceOwner(serial: string): Promise<DeviceOwner | null> {
+    return this.convex.getDeviceOwner(serial);
   }
 
   private cacheObject(serial: string, obj: DeviceObject): void {

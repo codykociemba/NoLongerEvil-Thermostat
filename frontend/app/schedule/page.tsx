@@ -8,6 +8,7 @@ import Link from "next/link";
 import { SignedIn, SignedOut, RedirectToSignIn } from "@clerk/nextjs";
 import { useState, useEffect } from "react";
 import { useThermostat } from "@/lib/store";
+import { useSyncConvexToStore } from "@/lib/use-sync-convex-store";
 import { thermostatAPI } from "@/lib/api";
 import {
   ScheduleResponse,
@@ -37,19 +38,16 @@ export default function SchedulePage() {
 }
 
 function ScheduleContent() {
+  // Sync Convex real-time data into Zustand store
+  useSyncConvexToStore();
+
+  // Use Zustand store (automatically synced with Convex)
   const devices = useThermostat((s) => s.devices);
   const activeDevice = useThermostat((s) => s.activeDevice());
   const setActiveDevice = useThermostat((s) => s.setActiveDevice);
-  const fetchStatus = useThermostat((s) => s.fetchStatus);
   const [schedule, setSchedule] = useState<ScheduleResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    fetchStatus(undefined).catch((error) => {
-      console.error("[Schedule] Failed to fetch devices:", error);
-    });
-  }, [fetchStatus]);
 
   useEffect(() => {
     if (!activeDevice?.serial) {

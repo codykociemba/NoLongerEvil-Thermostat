@@ -215,50 +215,6 @@ function IntegrationsContent() {
         </div>
       </div>
 
-      {/* Documentation Section */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Integration Resources</CardTitle>
-          <CardDescription>
-            Guides and documentation for setting up integrations
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-3">
-            <a
-              href="/docs/mqtt-setup"
-              target="_blank"
-              className="block p-3 rounded-lg border border-zinc-200 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-900 transition-colors"
-            >
-              <h3 className="font-medium">MQTT Setup Guide</h3>
-              <p className="text-sm text-zinc-600 dark:text-zinc-400 mt-1">
-                Step-by-step guide for configuring MQTT integration
-              </p>
-            </a>
-            <a
-              href="/docs/home-assistant"
-              target="_blank"
-              className="block p-3 rounded-lg border border-zinc-200 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-900 transition-colors"
-            >
-              <h3 className="font-medium">Home Assistant Integration</h3>
-              <p className="text-sm text-zinc-600 dark:text-zinc-400 mt-1">
-                Complete guide for Home Assistant auto-discovery and setup
-              </p>
-            </a>
-            <a
-              href="/docs/api"
-              target="_blank"
-              className="block p-3 rounded-lg border border-zinc-200 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-900 transition-colors"
-            >
-              <h3 className="font-medium">Developer API Documentation</h3>
-              <p className="text-sm text-zinc-600 dark:text-zinc-400 mt-1">
-                REST API reference and code examples
-              </p>
-            </a>
-          </div>
-        </CardContent>
-      </Card>
-
       {/* MQTT Setup Wizard */}
       <MqttSetupWizard
         open={mqttWizardOpen}

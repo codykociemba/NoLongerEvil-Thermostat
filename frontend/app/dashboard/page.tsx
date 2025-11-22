@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { useThermostat } from "@/lib/store";
+import { useSyncConvexToStore } from "@/lib/use-sync-convex-store";
 import { ThermostatCard } from "@/components/thermostat-card";
 import { LinkDeviceCard } from "@/components/link-device-card";
 import { HomeStatus } from "@/components/home-status";
@@ -27,25 +28,16 @@ export default function DashboardPage() {
 }
 
 function DashboardContent() {
+  // Sync Convex real-time data into Zustand store (enables existing components to work)
+  useSyncConvexToStore();
+
+  // Now use the Zustand store as normal - it's automatically synced with Convex
   const devices = useThermostat((s) => s.devices);
-  const fetchStatus = useThermostat((s) => s.fetchStatus);
   const setActiveDevice = useThermostat((s) => s.setActiveDevice);
   const isLoading = useThermostat((s) => s.isLoading);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   const hasDevices = devices.length > 0;
-
-  useEffect(() => {
-    fetchStatus(undefined).catch((error) => {
-      console.error("[Dashboard] initial fetch failed:", error);
-    });
-
-    const interval = setInterval(() => {
-      fetchStatus(undefined).catch(() => {});
-    }, 5000);
-
-    return () => clearInterval(interval);
-  }, [fetchStatus]);
 
   const gridDevices = useMemo(
     () =>
@@ -98,7 +90,7 @@ function DashboardContent() {
           </div>
           <LinkDeviceCard
             onLinked={() => {
-              fetchStatus(undefined);
+              // No need to manually fetch - Convex will update automatically
             }}
           />
         </div>
@@ -134,7 +126,7 @@ function DashboardContent() {
                     <LinkDeviceCard
                       onLinked={() => {
                         setIsModalOpen(false);
-                        fetchStatus(undefined);
+                        // No need to manually fetch - Convex will update automatically
                       }}
                     />
                   </motion.div>

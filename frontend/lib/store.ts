@@ -84,6 +84,7 @@ interface ThermostatState {
   activeDevice: () => DeviceData | null;
   setActiveDevice: (serial: string) => void;
   clearError: () => void;
+  setDevicesFromConvex: (devices: DeviceData[], userState: UserState | null) => void;
   setSetpoint: (value: number, immediate?: boolean) => Promise<void>;
   setTemperatureRange: (low: number, high: number, immediate?: boolean) => Promise<void>;
   nudge: (delta: number) => void;
@@ -105,7 +106,7 @@ interface ThermostatState {
   fetchStatus: (serial?: string) => Promise<void>;
 }
 
-type RawDeviceState = Record<
+export type RawDeviceState = Record<
   string,
   {
     object_revision: number;
@@ -244,7 +245,7 @@ function roundTemp(value: number, scale: "C" | "F"): number {
   return scale === "C" ? Math.round(value * 2) / 2 : Math.round(value);
 }
 
-function parseDeviceState(
+export function parseDeviceState(
   serial: string,
   state: RawDeviceState,
   previous?: DeviceData
@@ -439,6 +440,25 @@ export const useThermostat = create<ThermostatState>((set, get) => ({
   },
 
   clearError: () => set({ error: null }),
+
+  /**
+   * Sync devices from Convex real-time subscription into Zustand store
+   * This enables existing components to work with real-time data
+   */
+  setDevicesFromConvex: (devices, userState) => {
+    const currentActiveSerial = get().activeDeviceSerial;
+    const hasPreferred = currentActiveSerial
+      ? devices.some((device) => device.serial === currentActiveSerial)
+      : false;
+
+    set({
+      devices,
+      userState,
+      activeDeviceSerial: hasPreferred
+        ? currentActiveSerial
+        : devices[0]?.serial ?? null,
+    });
+  },
 
   setSetpoint: async (value, immediate = false) => {
     const active = get().activeDevice();

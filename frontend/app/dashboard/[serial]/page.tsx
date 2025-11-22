@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { SignedIn, SignedOut, RedirectToSignIn } from "@clerk/nextjs";
 import { useThermostat } from "@/lib/store";
+import { useSyncConvexToStore } from "@/lib/use-sync-convex-store";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import dynamic from "next/dynamic";
@@ -48,12 +49,16 @@ function DashboardSerialContent() {
       : Array.isArray(rawSerial)
       ? decodeURIComponent(rawSerial[0] ?? "").trim()
       : "";
-  const fetchStatus = useThermostat((s) => s.fetchStatus);
+
+  // Sync Convex real-time data into Zustand store
+  useSyncConvexToStore();
+
+  // Use Zustand store (automatically synced with Convex)
   const devices = useThermostat((s) => s.devices);
   const setActiveDevice = useThermostat((s) => s.setActiveDevice);
   const activeDevice = useThermostat((s) => s.activeDevice());
-  const isLoading = useThermostat((s) => s.isLoading);
   const error = useThermostat((s) => s.error);
+  const isLoading = useThermostat((s) => s.isLoading);
 
   const hasDevices = devices.length > 0;
   const deviceKnown = devices.some((device) => device.serial === serial);
@@ -61,24 +66,14 @@ function DashboardSerialContent() {
   useEffect(() => {
     if (!serial) return;
     setActiveDevice(serial);
-
-    fetchStatus(serial).catch((err) => {
-      console.error("[DashboardSerial] initial fetch failed:", err);
-    });
-
-    const interval = setInterval(() => {
-      fetchStatus(serial).catch(() => {});
-    }, 5000);
-
-    return () => {
-      clearInterval(interval);
-    };
-  }, [serial, fetchStatus, setActiveDevice]);
+  }, [serial, setActiveDevice]);
 
   const { isPulling, isRefreshing, pullDistance, progress } = usePullToRefresh({
     threshold: 80,
     onRefresh: async () => {
-      await fetchStatus(serial);
+      // Convex automatically refreshes, but we can force a refresh if needed
+      // For now, just add a small delay to show the refresh animation
+      await new Promise(resolve => setTimeout(resolve, 500));
     },
   });
 
@@ -112,7 +107,9 @@ function DashboardSerialContent() {
           </p>
         </div>
         <div className="max-w-xl">
-          <LinkDeviceCard onLinked={() => fetchStatus(serial)} />
+          <LinkDeviceCard onLinked={() => {
+            // No need to manually fetch - Convex will update automatically
+          }} />
         </div>
         <Button asChild variant="ghost">
           <Link href="/dashboard">Back to dashboard</Link>
