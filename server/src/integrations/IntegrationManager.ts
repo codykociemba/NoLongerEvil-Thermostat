@@ -16,6 +16,8 @@ export class IntegrationManager {
   private convex: ConvexService | null = null;
   private deviceState: DeviceStateService | null = null;
   private subscriptionManager: SubscriptionManager | null = null;
+  private watchInterval: NodeJS.Timeout | null = null;
+  private currentIntegrationConfigs: Map<string, any> = new Map();
 
   /**
    * Initialize integration manager and load all enabled integrations
@@ -39,8 +41,76 @@ export class IntegrationManager {
       }
 
       console.log('[IntegrationManager] Initialization complete');
+
+      this.startWatching();
     } catch (error) {
       console.error('[IntegrationManager] Failed to initialize:', error);
+    }
+  }
+
+  private startWatching(): void {
+    if (this.watchInterval) {
+      clearInterval(this.watchInterval);
+    }
+
+    this.watchInterval = setInterval(async () => {
+      await this.checkForChanges();
+    }, 10000);
+
+    console.log('[IntegrationManager] Started watching for integration changes (polling every 10s)');
+  }
+
+  private async checkForChanges(): Promise<void> {
+    if (!this.convex) return;
+
+    try {
+      const mqttIntegrations = await this.convex.getAllEnabledMqttIntegrations();
+
+      const newConfigs = new Map<string, any>();
+      const enabledUserIds = new Set<string>();
+
+      for (const { userId, config } of mqttIntegrations) {
+        const key = `mqtt:${userId}`;
+        enabledUserIds.add(userId);
+        newConfigs.set(key, { userId, config, enabled: true });
+      }
+
+      const currentKeys = new Set(this.integrations.keys());
+      const newKeys = new Set(newConfigs.keys());
+
+      for (const key of currentKeys) {
+        if (!newKeys.has(key)) {
+          console.log(`[IntegrationManager] Integration ${key} was disabled, shutting down...`);
+          const integration = this.integrations.get(key);
+          if (integration) {
+            await integration.shutdown();
+            this.integrations.delete(key);
+            this.currentIntegrationConfigs.delete(key);
+          }
+        }
+      }
+
+      for (const [key, data] of newConfigs) {
+        const { userId, config } = data;
+        const existing = this.integrations.get(key);
+
+        if (!existing) {
+          console.log(`[IntegrationManager] New integration ${key} detected, loading...`);
+          await this.loadMqttIntegration(userId, config);
+          this.currentIntegrationConfigs.set(key, config);
+        } else {
+          const oldConfig = this.currentIntegrationConfigs.get(key);
+          if (JSON.stringify(oldConfig) !== JSON.stringify(config)) {
+            console.log(`[IntegrationManager] Integration ${key} config changed, reloading...`);
+            await existing.shutdown();
+            this.integrations.delete(key);
+            await this.loadMqttIntegration(userId, config);
+            this.currentIntegrationConfigs.set(key, config);
+          }
+        }
+      }
+    } catch (error) {
+      console.error('[IntegrationManager] Error checking for integration changes:', error);
     }
   }
 
@@ -150,6 +220,11 @@ export class IntegrationManager {
   async shutdown(): Promise<void> {
     console.log('[IntegrationManager] Shutting down all integrations...');
 
+    if (this.watchInterval) {
+      clearInterval(this.watchInterval);
+      this.watchInterval = null;
+    }
+
     const promises = Array.from(this.integrations.values()).map(async (integration) => {
       try {
         await integration.shutdown();
@@ -160,6 +235,7 @@ export class IntegrationManager {
 
     await Promise.all(promises);
     this.integrations.clear();
+    this.currentIntegrationConfigs.clear();
 
     console.log('[IntegrationManager] All integrations shut down');
   }

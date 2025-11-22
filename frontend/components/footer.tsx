@@ -79,15 +79,28 @@ export function Footer() {
             <p className="text-sm text-zinc-600 dark:text-zinc-400 leading-relaxed mb-3">
               This project is open source and available on GitHub. Contributions are welcome!
             </p>
-            <a
-              href="https://github.com/codykociemba/NoLongerEvil-Thermostat"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 text-sm font-medium hover:bg-zinc-800 dark:hover:bg-zinc-200 transition-colors"
-            >
-              <Github className="h-4 w-4" />
-              View on GitHub
-            </a>
+            <div className="flex gap-2">
+              <a
+                href="https://github.com/codykociemba/NoLongerEvil-Thermostat"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 text-sm font-medium hover:bg-zinc-800 dark:hover:bg-zinc-200 transition-colors"
+              >
+                <Github className="h-4 w-4" />
+                View on GitHub
+              </a>
+              <a
+                href="https://buymeacoffee.com/codykociemba"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <img
+                  src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png"
+                  alt="Buy Me A Coffee"
+                  className="h-[38px] w-auto"
+                />
+              </a>
+            </div>
           </div>
         </div>
 

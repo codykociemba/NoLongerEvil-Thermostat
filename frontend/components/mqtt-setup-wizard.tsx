@@ -156,24 +156,41 @@ export function MqttSetupWizard({ open, onOpenChange, existingConfig }: MqttSetu
         <div className="py-6">
           {/* Progress Steps */}
           <div className="mb-8">
-            <div className="flex items-center justify-between">
+            <div className="flex items-center">
               {["broker", "credentials", "advanced", "testing"].map((s, idx) => (
-                <div key={s} className="flex items-center">
-                  <div
-                    className={`flex h-8 w-8 items-center justify-center rounded-full text-sm font-medium ${
+                <div key={s} className="flex items-center flex-1">
+                  <div className="flex flex-col items-center flex-1">
+                    <div
+                      className={`flex h-10 w-10 items-center justify-center rounded-full text-sm font-semibold transition-all ${
+                        step === s
+                          ? "bg-brand-600 text-white shadow-lg shadow-brand-500/30"
+                          : ["broker", "credentials", "advanced", "testing"].indexOf(step) >
+                            ["broker", "credentials", "advanced", "testing"].indexOf(s)
+                          ? "bg-green-600 text-white"
+                          : "bg-zinc-200 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400"
+                      }`}
+                    >
+                      {["broker", "credentials", "advanced", "testing"].indexOf(step) >
+                      ["broker", "credentials", "advanced", "testing"].indexOf(s) ? (
+                        <CheckCircle2 className="h-5 w-5" />
+                      ) : (
+                        idx + 1
+                      )}
+                    </div>
+                    <span className={`mt-2 text-xs font-medium ${
                       step === s
-                        ? "bg-brand-600 text-white"
-                        : ["broker", "credentials", "advanced", "testing"].indexOf(step) >
-                          ["broker", "credentials", "advanced", "testing"].indexOf(s)
-                        ? "bg-green-600 text-white"
-                        : "bg-zinc-200 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400"
-                    }`}
-                  >
-                    {idx + 1}
+                        ? "text-brand-600 dark:text-brand-400"
+                        : "text-zinc-600 dark:text-zinc-400"
+                    }`}>
+                      {s === "broker" && "Broker"}
+                      {s === "credentials" && "Credentials"}
+                      {s === "advanced" && "Advanced"}
+                      {s === "testing" && "Test"}
+                    </span>
                   </div>
                   {idx < 3 && (
                     <div
-                      className={`h-1 w-16 ${
+                      className={`h-0.5 flex-1 mx-2 transition-all ${
                         ["broker", "credentials", "advanced", "testing"].indexOf(step) > idx
                           ? "bg-green-600"
                           : "bg-zinc-200 dark:bg-zinc-800"
@@ -183,65 +200,65 @@ export function MqttSetupWizard({ open, onOpenChange, existingConfig }: MqttSetu
                 </div>
               ))}
             </div>
-            <div className="mt-2 flex items-center justify-between text-xs text-zinc-600 dark:text-zinc-400">
-              <span>Broker</span>
-              <span>Credentials</span>
-              <span>Advanced</span>
-              <span>Test</span>
-            </div>
           </div>
 
           {/* Step Content */}
           {step === "broker" && (
-            <div className="space-y-4">
-              <div className="flex items-center gap-2 text-brand-600 dark:text-brand-400 mb-4">
-                <Server className="h-5 w-5" />
-                <h3 className="font-semibold">Broker Configuration</h3>
+            <div className="space-y-6">
+              <div className="flex items-center gap-2 text-brand-600 dark:text-brand-400">
+                <div className="p-2 rounded-lg bg-brand-100 dark:bg-brand-900/30">
+                  <Server className="h-5 w-5" />
+                </div>
+                <h3 className="text-lg font-semibold">Broker Configuration</h3>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="brokerUrl">MQTT Broker URL *</Label>
+                <Label htmlFor="brokerUrl" className="text-sm font-medium">MQTT Broker URL *</Label>
                 <Input
                   id="brokerUrl"
                   placeholder="mqtt://192.168.1.100:1883"
                   value={brokerUrl}
                   onChange={(e) => setBrokerUrl(e.target.value)}
+                  className="h-11"
                 />
                 <p className="text-sm text-zinc-500 dark:text-zinc-400">
-                  Examples: <code className="text-xs">mqtt://localhost:1883</code>,{" "}
-                  <code className="text-xs">mqtts://broker.hivemq.com:8883</code>
+                  Examples: <code className="text-xs bg-zinc-100 dark:bg-zinc-800 px-1.5 py-0.5 rounded">mqtt://localhost:1883</code>,{" "}
+                  <code className="text-xs bg-zinc-100 dark:bg-zinc-800 px-1.5 py-0.5 rounded">mqtts://broker.hivemq.com:8883</code>
                 </p>
               </div>
 
-              <Alert>
-                <Wifi className="h-4 w-4" />
-                <AlertDescription>
-                  <strong>For Home Assistant users:</strong> Use <code>mqtt://core-mosquitto:1883</code> if using the Mosquitto add-on, or your Home Assistant's IP address.
+              <Alert className="border-blue-300 dark:border-blue-700 bg-blue-100 dark:bg-blue-900/40">
+                <Wifi className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                <AlertDescription className="text-blue-900 dark:text-blue-100">
+                  <strong>For Home Assistant users:</strong> Use <code className="text-xs bg-blue-200 dark:bg-blue-800 px-1.5 py-0.5 rounded">mqtt://core-mosquitto:1883</code> if using the Mosquitto add-on, or your Home Assistant's IP address.
                 </AlertDescription>
               </Alert>
             </div>
           )}
 
           {step === "credentials" && (
-            <div className="space-y-4">
-              <div className="flex items-center gap-2 text-brand-600 dark:text-brand-400 mb-4">
-                <Lock className="h-5 w-5" />
-                <h3 className="font-semibold">Authentication</h3>
+            <div className="space-y-6">
+              <div className="flex items-center gap-2 text-brand-600 dark:text-brand-400">
+                <div className="p-2 rounded-lg bg-brand-100 dark:bg-brand-900/30">
+                  <Lock className="h-5 w-5" />
+                </div>
+                <h3 className="text-lg font-semibold">Authentication</h3>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="username">Username (Optional)</Label>
+                <Label htmlFor="username" className="text-sm font-medium">Username (Optional)</Label>
                 <Input
                   id="username"
                   placeholder="mqtt_user"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
                   autoComplete="off"
+                  className="h-11"
                 />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="password">Password (Optional)</Label>
+                <Label htmlFor="password" className="text-sm font-medium">Password (Optional)</Label>
                 <Input
                   id="password"
                   type="password"
@@ -249,11 +266,12 @@ export function MqttSetupWizard({ open, onOpenChange, existingConfig }: MqttSetu
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   autoComplete="new-password"
+                  className="h-11"
                 />
               </div>
 
-              <Alert>
-                <AlertDescription>
+              <Alert className="border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-950/30">
+                <AlertDescription className="text-zinc-700 dark:text-zinc-300">
                   If your MQTT broker requires authentication, enter your credentials. Leave empty for anonymous access.
                 </AlertDescription>
               </Alert>
@@ -261,19 +279,22 @@ export function MqttSetupWizard({ open, onOpenChange, existingConfig }: MqttSetu
           )}
 
           {step === "advanced" && (
-            <div className="space-y-4">
-              <div className="flex items-center gap-2 text-brand-600 dark:text-brand-400 mb-4">
-                <Server className="h-5 w-5" />
-                <h3 className="font-semibold">Advanced Settings</h3>
+            <div className="space-y-6">
+              <div className="flex items-center gap-2 text-brand-600 dark:text-brand-400">
+                <div className="p-2 rounded-lg bg-brand-100 dark:bg-brand-900/30">
+                  <Server className="h-5 w-5" />
+                </div>
+                <h3 className="text-lg font-semibold">Advanced Settings</h3>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="topicPrefix">Topic Prefix</Label>
+                <Label htmlFor="topicPrefix" className="text-sm font-medium">Topic Prefix</Label>
                 <Input
                   id="topicPrefix"
                   placeholder="nolongerevil"
                   value={topicPrefix}
                   onChange={(e) => setTopicPrefix(e.target.value)}
+                  className="h-11"
                 />
                 <p className="text-sm text-zinc-500 dark:text-zinc-400">
                   All MQTT topics will be prefixed with this value
@@ -281,20 +302,21 @@ export function MqttSetupWizard({ open, onOpenChange, existingConfig }: MqttSetu
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="discoveryPrefix">Home Assistant Discovery Prefix</Label>
+                <Label htmlFor="discoveryPrefix" className="text-sm font-medium">Home Assistant Discovery Prefix</Label>
                 <Input
                   id="discoveryPrefix"
                   placeholder="homeassistant"
                   value={discoveryPrefix}
                   onChange={(e) => setDiscoveryPrefix(e.target.value)}
+                  className="h-11"
                 />
                 <p className="text-sm text-zinc-500 dark:text-zinc-400">
                   Used for Home Assistant auto-discovery (usually "homeassistant")
                 </p>
               </div>
 
-              <Alert>
-                <AlertDescription>
+              <Alert className="border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/30">
+                <AlertDescription className="text-zinc-700 dark:text-zinc-300">
                   These settings are usually fine at their defaults. Only change if you know what you're doing.
                 </AlertDescription>
               </Alert>
@@ -302,75 +324,89 @@ export function MqttSetupWizard({ open, onOpenChange, existingConfig }: MqttSetu
           )}
 
           {step === "testing" && (
-            <div className="space-y-4">
-              <div className="flex items-center gap-2 text-brand-600 dark:text-brand-400 mb-4">
-                <Wifi className="h-5 w-5" />
-                <h3 className="font-semibold">Test Connection</h3>
+            <div className="space-y-6">
+              <div className="flex items-center gap-2 text-brand-600 dark:text-brand-400">
+                <div className="p-2 rounded-lg bg-brand-100 dark:bg-brand-900/30">
+                  <Wifi className="h-5 w-5" />
+                </div>
+                <h3 className="text-lg font-semibold">Test Connection</h3>
               </div>
 
-              <div className="rounded-lg border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900 p-4 space-y-2">
-                <div className="text-sm">
-                  <span className="text-zinc-600 dark:text-zinc-400">Broker: </span>
-                  <code className="text-xs">{brokerUrl}</code>
+              <div className="rounded-lg border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/50 p-5 space-y-3">
+                <div className="flex items-start gap-3">
+                  <span className="text-sm font-medium text-zinc-600 dark:text-zinc-400 min-w-[100px]">Broker:</span>
+                  <code className="text-sm font-mono text-zinc-900 dark:text-zinc-100">{brokerUrl}</code>
                 </div>
                 {username && (
-                  <div className="text-sm">
-                    <span className="text-zinc-600 dark:text-zinc-400">Username: </span>
-                    <code className="text-xs">{username}</code>
+                  <div className="flex items-start gap-3">
+                    <span className="text-sm font-medium text-zinc-600 dark:text-zinc-400 min-w-[100px]">Username:</span>
+                    <code className="text-sm font-mono text-zinc-900 dark:text-zinc-100">{username}</code>
                   </div>
                 )}
-                <div className="text-sm">
-                  <span className="text-zinc-600 dark:text-zinc-400">Topic Prefix: </span>
-                  <code className="text-xs">{topicPrefix}</code>
+                <div className="flex items-start gap-3">
+                  <span className="text-sm font-medium text-zinc-600 dark:text-zinc-400 min-w-[100px]">Topic Prefix:</span>
+                  <code className="text-sm font-mono text-zinc-900 dark:text-zinc-100">{topicPrefix}</code>
                 </div>
               </div>
 
               {testResult && (
-                <Alert variant={testResult.success ? "default" : "destructive"}>
+                <Alert
+                  variant={testResult.success ? "default" : "destructive"}
+                  className={testResult.success
+                    ? "border-green-300 dark:border-green-700 bg-green-100 dark:bg-green-900/40"
+                    : ""
+                  }
+                >
                   {testResult.success ? (
-                    <CheckCircle2 className="h-4 w-4" />
+                    <CheckCircle2 className="h-4 w-4 text-green-600 dark:text-green-400" />
                   ) : (
                     <AlertCircle className="h-4 w-4" />
                   )}
-                  <AlertDescription>{testResult.message}</AlertDescription>
+                  <AlertDescription className={testResult.success ? "text-green-900 dark:text-green-100" : ""}>
+                    {testResult.message}
+                  </AlertDescription>
                 </Alert>
               )}
             </div>
           )}
 
           {step === "complete" && (
-            <div className="space-y-4 text-center py-8">
-              <CheckCircle2 className="h-16 w-16 text-green-600 mx-auto" />
-              <h3 className="text-xl font-semibold">Connection Successful!</h3>
-              <p className="text-zinc-600 dark:text-zinc-400">
-                Your MQTT integration is ready. Click "Save" to enable it.
-              </p>
+            <div className="space-y-6 text-center py-12">
+              <div className="inline-flex p-4 rounded-full bg-green-100 dark:bg-green-900/30">
+                <CheckCircle2 className="h-16 w-16 text-green-600 dark:text-green-400" />
+              </div>
+              <div className="space-y-2">
+                <h3 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">Connection Successful!</h3>
+                <p className="text-zinc-600 dark:text-zinc-400 max-w-md mx-auto">
+                  Your MQTT integration is ready. Click "Save" to enable it and start publishing device data.
+                </p>
+              </div>
             </div>
           )}
         </div>
 
-        <DialogFooter>
+        <DialogFooter className="gap-2">
           {step !== "broker" && step !== "complete" && (
-            <Button variant="outline" onClick={handleBack} disabled={isLoading}>
+            <Button variant="outline" onClick={handleBack} disabled={isLoading} className="h-11">
               Back
             </Button>
           )}
 
           {step !== "testing" && step !== "complete" && (
-            <Button onClick={handleNext} disabled={!canProceed()}>
+            <Button onClick={handleNext} disabled={!canProceed()} className="h-11 bg-brand-600 hover:bg-brand-700 text-white">
               Next
             </Button>
           )}
 
           {step === "testing" && (
-            <Button onClick={handleTest} disabled={isLoading}>
+            <Button onClick={handleTest} disabled={isLoading} className="h-11 bg-brand-600 hover:bg-brand-700 text-white">
               {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Test Connection
             </Button>
           )}
 
           {step === "complete" && (
-            <Button onClick={handleSave} disabled={isLoading}>
+            <Button onClick={handleSave} disabled={isLoading} className="h-11 bg-green-600 hover:bg-green-700 text-white">
               {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Save Integration
             </Button>

@@ -99,6 +99,34 @@ export async function handleCommand(
       const awayValue = value ? 2 : 0;
       updatedValue.auto_away = awayValue;
       changesMade = true;
+
+      const nowMs = Date.now();
+
+      const owner = await deviceState.getDeviceOwner(serial);
+      if (owner && owner.userId) {
+        const userId = owner.userId.replace(/^user_/, '');
+        const userKey = `user.${userId}`;
+        let userState = await deviceState.get(serial, userKey);
+
+        if (userState && userState.value) {
+          const updatedUserValue = {
+            ...userState.value,
+            away: Boolean(value),
+            away_setter: 1,
+            away_timestamp: nowMs,
+            manual_away_timestamp: nowMs,
+          };
+
+          await deviceState.upsert(
+            serial,
+            userKey,
+            userState.object_revision + 1,
+            nowMs,
+            updatedUserValue
+          );
+        }
+      }
+
       break;
     }
 

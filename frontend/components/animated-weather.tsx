@@ -61,48 +61,57 @@ export function AnimatedWeather() {
   }
 
   const weatherType = mapConditionToType(userState.weather.current.condition);
+  const isRainy = weatherType === 'rainy' || weatherType === 'thundery';
 
   return (
-    <div className="flex justify-center mb-6">
-      {weatherType === 'sunny' && (
-        <div className="weather-icon sunny"></div>
-      )}
+    <div className="flex flex-col items-center mb-6">
+      <div className="flex justify-center">
+        {weatherType === 'sunny' && (
+          <div className="weather-icon sunny"></div>
+        )}
 
-      {weatherType === 'mostly_sunny' && (
-        <div className="weather-icon mostly_sunny">
-          <div className="mostly_sunny__sun"></div>
-          <div className="mostly_sunny__cloud"></div>
-        </div>
-      )}
+        {weatherType === 'mostly_sunny' && (
+          <div className="weather-icon mostly_sunny">
+            <div className="mostly_sunny__sun"></div>
+            <div className="mostly_sunny__cloud"></div>
+          </div>
+        )}
 
-      {weatherType === 'partly_cloudy' && (
-        <div className="weather-icon partly_cloudy">
-          <div className="partly_cloudy__sun"></div>
-          <div className="partly_cloudy__cloud"></div>
-        </div>
-      )}
+        {weatherType === 'partly_cloudy' && (
+          <div className="weather-icon partly_cloudy">
+            <div className="partly_cloudy__sun"></div>
+            <div className="partly_cloudy__cloud"></div>
+          </div>
+        )}
 
-      {weatherType === 'cloudy' || weatherType === 'mostly_cloudy' && (
-        <div className="weather-icon cloudy"></div>
-      )}
+        {weatherType === 'cloudy' || weatherType === 'mostly_cloudy' && (
+          <div className="weather-icon cloudy"></div>
+        )}
 
-      {weatherType === 'foggy' && (
-        <div className="weather-icon foggy">
-          <div className="foggy__fog"></div>
-        </div>
-      )}
+        {weatherType === 'foggy' && (
+          <div className="weather-icon foggy">
+            <div className="foggy__fog"></div>
+          </div>
+        )}
 
-      {weatherType === 'rainy' && (
-        <div className="weather-icon rainy">
-          <div className="rainy__cloud"></div>
-          <div className="rainy__rain"></div>
-        </div>
-      )}
+        {weatherType === 'rainy' && (
+          <div className="weather-icon rainy">
+            <div className="rainy__cloud"></div>
+            <div className="rainy__rain"></div>
+          </div>
+        )}
 
-      {weatherType === 'thundery' && (
-        <div className="weather-icon thundery">
-          <div className="thundery__cloud"></div>
-          <div className="thundery__rain"></div>
+        {weatherType === 'thundery' && (
+          <div className="weather-icon thundery">
+            <div className="thundery__cloud"></div>
+            <div className="thundery__rain"></div>
+          </div>
+        )}
+      </div>
+
+      {isRainy && (
+        <div className="mt-2 text-xs sm:text-sm text-zinc-600 dark:text-zinc-400 italic animate-fade-in">
+          Don't forget to bring a towel!
         </div>
       )}
     </div>

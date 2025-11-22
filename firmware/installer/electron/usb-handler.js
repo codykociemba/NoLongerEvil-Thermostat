@@ -59,24 +59,25 @@ function getBinaryPath() {
 }
 
 function getFirmwarePaths(generation = 'gen2', customFiles = null) {
-  // If custom files are provided and all three are specified, use them
-  if (customFiles && customFiles.xload && customFiles.uboot && customFiles.uimage) {
-    return {
-      xload: customFiles.xload,
-      uboot: customFiles.uboot,
-      uimage: customFiles.uimage
-    };
-  }
-
-  // Otherwise, use the bundled firmware
   const firmwareDir = getResourcePath('firmware');
 
-  return {
+  const defaultPaths = {
     xload: path.join(firmwareDir, `x-load-${generation}.bin`),
     uboot: path.join(firmwareDir, 'u-boot.bin'),
-    uimage: path.join(firmwareDir, 'uImage')
+    uimage: path.join(firmwareDir, 'uImage'),
+  };
+
+  if (!customFiles) {
+    return defaultPaths;
+  }
+
+  return {
+    xload: customFiles.xload || defaultPaths.xload,
+    uboot: customFiles.uboot || defaultPaths.uboot,
+    uimage: customFiles.uimage || defaultPaths.uimage,
   };
 }
+
 
 async function checkLibusb() {
   if (process.platform !== 'darwin' && process.platform !== 'linux') {
@@ -86,8 +87,8 @@ async function checkLibusb() {
   try {
     require('usb');
     return true;
-  } catch (error) {
-    console.error('USB module load error:', error);
+  } catch (err) {
+    console.error('USB module load error:', err);
     return false;
   }
 }
@@ -119,8 +120,8 @@ async function checkSystem() {
     try {
       const { checkDriverInstalled } = require('./windows-driver');
       const driverCheck = await checkDriverInstalled();
-      hasWindowsDriver = driverCheck.installed || false;
-      needsWindowsDriver = !hasWindowsDriver;
+      needsWindowsDriver = !driverCheck.installed;
+      hasWindowsDriver = driverCheck.installed;
     } catch (error) {
       console.error('Error checking Windows driver:', error);
       needsWindowsDriver = true;
@@ -137,67 +138,63 @@ async function checkSystem() {
     if (!fs.existsSync(binaryPath)) missingFiles.push('omap_loader binary');
     if (!fs.existsSync(gen1Paths.xload)) missingFiles.push('x-load-gen1.bin');
     if (!fs.existsSync(gen2Paths.xload)) missingFiles.push('x-load-gen2.bin');
-    if (!fs.existsSync(gen1Paths.uboot)) missingFiles.push('u-boot.bin');
-    if (!fs.existsSync(gen1Paths.uimage)) missingFiles.push('uImage');
+    if (!fs.existsSync(gen1Paths.uboot) || !fs.existsSync(gen2Paths.uboot)) missingFiles.push('u-boot.bin');
+    if (!fs.existsSync(gen1Paths.uimage) || !fs.existsSync(gen2Paths.uimage)) missingFiles.push('uImage');
+
+    const hasRequiredFiles = missingFiles.length === 0;
 
     return {
-      success: true,
       platform,
       arch,
       hasLibusb,
       needsLibusb,
-      needsAdmin,
       isAdmin,
+      needsAdmin,
       needsWindowsDriver,
       hasWindowsDriver,
-      binaryPath,
+      hasRequiredFiles,
       missingFiles,
-      ready: true
+      binaryPath,
+      firmwarePaths: {
+        gen1: gen1Paths,
+        gen2: gen2Paths
+      }
     };
   } catch (error) {
+    console.error('System check error:', error);
     return {
-      success: false,
-      error: error.message,
       platform,
       arch,
       hasLibusb,
       needsLibusb,
-      needsAdmin,
       isAdmin,
-      needsWindowsDriver,
-      hasWindowsDriver
+      needsAdmin,
+      error: error.message
     };
   }
 }
 
 async function detectDevice() {
-  try {
-    const usb = require('usb');
+  const usb = require('usb');
 
+  try {
     const devices = usb.getDeviceList();
-    const omapDevice = devices.find(device =>
+    const omapDevices = devices.filter(device =>
       device.deviceDescriptor.idVendor === OMAP_DFU_VENDOR_ID &&
       device.deviceDescriptor.idProduct === OMAP_DFU_PRODUCT_ID
     );
 
-    if (omapDevice) {
-      return {
-        success: true,
-        detected: true,
-        vendorId: OMAP_DFU_VENDOR_ID,
-        productId: OMAP_DFU_PRODUCT_ID
-      };
-    }
-
     return {
       success: true,
-      detected: false
+      devices: omapDevices.map(device => ({
+        busNumber: device.busNumber,
+        deviceAddress: device.deviceAddress,
+        deviceDescriptor: device.deviceDescriptor
+      }))
     };
   } catch (error) {
-    return {
-      success: false,
-      error: error.message
-    };
+    console.error('Device detection error:', error);
+    return { success: false, error: error.message };
   }
 }
 
@@ -217,28 +214,26 @@ async function installFirmware(progressCallback, generation = 'gen2', customFile
         console.log('Installing WinUSB driver for Windows...');
 
         if (progressCallback) {
-          progressCallback({ stage: 'driver', percent: 5, message: 'Installing USB driver...' });
+          progressCallback({
+            stage: 'driver',
+            percent: 5,
+            message: 'Installing device driver...'
+          });
         }
 
-        const driverResult = await installWinUSBDriver();
-        console.log('Driver installation result:', driverResult);
-
-        if (!driverResult.success) {
-          throw new Error(`Failed to install Windows USB driver: ${driverResult.error || 'Unknown error'}`);
-        }
+        await installWinUSBDriver();
 
         if (progressCallback) {
-          progressCallback({ stage: 'driver', percent: 10, message: 'USB driver installed successfully' });
-        }
-      } else {
-        console.log('WinUSB driver already installed, skipping installation');
-        if (progressCallback) {
-          progressCallback({ stage: 'driver', percent: 10, message: 'USB driver already installed' });
+          progressCallback({
+            stage: 'driver',
+            percent: 10,
+            message: 'Device driver installed successfully.'
+          });
         }
       }
     } catch (error) {
-      console.error('Windows driver check/installation failed:', error);
-      throw error;
+      console.error('Windows driver installation error:', error);
+      throw new Error(`Failed to install Windows driver: ${error.message}`);
     }
   }
 
@@ -261,6 +256,7 @@ async function installFirmware(progressCallback, generation = 'gen2', customFile
       let spawnArgs = args;
       let spawnOptions = {};
 
+      // Windows: create batch file and tail log (unchanged)
       if (process.platform === 'win32') {
         console.log('Setting up Windows batch file for omap_loader...');
         console.log('Binary path:', binaryPath);
@@ -280,18 +276,17 @@ async function installFirmware(progressCallback, generation = 'gen2', customFile
 
         console.log('Created batch file:', batchFile);
         console.log('Log file:', logFile);
-        console.log('Batch content:', batchContent);
 
-        command = batchFile;
+        spawnOptions.shell = true;
+        spawnOptions.windowsHide = false;
+
+        command = `"${batchFile}"`;
         spawnArgs = [];
-        spawnOptions = {
-          shell: true,
-          cwd: path.dirname(binaryPath),
-          env: { ...process.env, PATH: `${path.dirname(binaryPath)};${process.env.PATH}` }
-        };
 
         let lastSize = 0;
-        let watchInterval = setInterval(() => {
+        let watchInterval;
+
+        const watchLogFile = () => {
           if (!fs.existsSync(logFile)) {
             return;
           }
@@ -307,13 +302,13 @@ async function installFirmware(progressCallback, generation = 'gen2', customFile
               } else if (newContent.includes('[+] successfully opened')) {
                 progressCallback({ stage: 'detected', percent: 25, message: 'Device detected!' });
               } else if (newContent.includes('[+] got ASIC ID')) {
-                progressCallback({ stage: 'xload', percent: 35, message: 'Reading device info...' });
-              } else if (newContent.includes("uploading 'u-boot.bin'")) {
-                progressCallback({ stage: 'uboot', percent: 50, message: 'Uploading u-boot...' });
-              } else if (newContent.includes("uploading 'uImage'")) {
-                progressCallback({ stage: 'kernel', percent: 65, message: 'Uploading kernel (this may take a minute)...' });
-              } else if (newContent.includes('[+] sending jump command')) {
-                progressCallback({ stage: 'kernel', percent: 90, message: 'Finalizing installation...' });
+                progressCallback({ stage: 'xload', percent: 35, message: 'Reading device information...' });
+              } else if (newContent.includes('x-load.bin')) {
+                progressCallback({ stage: 'xload', percent: 45, message: 'Transferring first stage bootloader...' });
+              } else if (newContent.includes('u-boot.bin')) {
+                progressCallback({ stage: 'uboot', percent: 65, message: 'Transferring second stage bootloader...' });
+              } else if (newContent.includes('uImage')) {
+                progressCallback({ stage: 'kernel', percent: 85, message: 'Transferring Linux kernel...' });
               } else if (newContent.includes('[+] successfully transfered')) {
                 progressCallback({ stage: 'complete', percent: 100, message: 'Installation complete!' });
               }
@@ -321,7 +316,9 @@ async function installFirmware(progressCallback, generation = 'gen2', customFile
 
             lastSize = stats.size;
           }
-        }, 200);
+        };
+
+        watchInterval = setInterval(watchLogFile, 200);
 
         spawnOptions._logFile = logFile;
         spawnOptions._tmpDir = tmpDir;
@@ -358,20 +355,7 @@ async function installFirmware(progressCallback, generation = 'gen2', customFile
         const logFile = path.join(tmpDir, 'install.log');
         fs.writeFileSync(logFile, '', { mode: 0o644 });
 
-        const wrapperScript = path.join(tmpDir, 'install.sh');
-        const scriptContent = `#!/bin/bash
-exec > "${logFile}" 2>&1
-"${binaryPath}" -f "${tmpFirmwarePaths.xload}" -f "${tmpFirmwarePaths.uboot}" -a 0x80100000 -f "${tmpFirmwarePaths.uimage}" -a 0x80A00000 -v -j 0x80100000
-`;
-
-        fs.writeFileSync(wrapperScript, scriptContent, { mode: 0o755 });
-
-        console.log('Created wrapper script:', wrapperScript);
-        console.log('Log file:', logFile);
-
         let lastSize = 0;
-        let watchInterval;
-
         const watchLogFile = () => {
           if (!fs.existsSync(logFile)) {
             return;
@@ -417,16 +401,19 @@ exec > "${logFile}" 2>&1
           }
         };
 
-        watchInterval = setInterval(watchLogFile, 200);
+        const watchInterval = setInterval(watchLogFile, 200);
 
         const options = {
           name: 'NoLongerEvil Installer'
         };
 
-        sudo.exec(`"${wrapperScript}"`, options, (error, stdout, stderr) => {
-          clearInterval(watchInterval);
+        const sudoCommand =
+          `/bin/bash -c "exec > \\"${logFile}\\" 2>&1; ` +
+          `\\"${binaryPath}\\" -f \\"${tmpFirmwarePaths.xload}\\" -f \\"${tmpFirmwarePaths.uboot}\\" ` +
+          `-a 0x80100000 -f \\"${tmpFirmwarePaths.uimage}\\" -a 0x80A00000 -v -j 0x80100000"`;
 
-          console.log('Installation complete');
+        sudo.exec(sudoCommand, options, (error, stdout, stderr) => {
+          clearInterval(watchInterval);
 
           let finalOutput = '';
           if (fs.existsSync(logFile)) {
@@ -441,7 +428,6 @@ exec > "${logFile}" 2>&1
             if (fs.existsSync(tmpFirmwarePaths.xload)) fs.unlinkSync(tmpFirmwarePaths.xload);
             if (fs.existsSync(tmpFirmwarePaths.uboot)) fs.unlinkSync(tmpFirmwarePaths.uboot);
             if (fs.existsSync(tmpFirmwarePaths.uimage)) fs.unlinkSync(tmpFirmwarePaths.uimage);
-            if (fs.existsSync(wrapperScript)) fs.unlinkSync(wrapperScript);
             if (fs.existsSync(logFile)) fs.unlinkSync(logFile);
             if (fs.existsSync(tmpDir)) fs.rmdirSync(tmpDir);
           } catch (cleanupError) {
@@ -461,7 +447,7 @@ exec > "${logFile}" 2>&1
           const hasSendJump = combinedOutput.includes('[+] sending jump command');
 
           if (hasTransferred || hasJump || hasSendJump) {
-            let progress = {
+            const progress = {
               hasXload: combinedOutput.includes('x-load.bin'),
               hasUboot: combinedOutput.includes('u-boot.bin'),
               hasKernel: combinedOutput.includes('uImage'),
@@ -495,7 +481,7 @@ exec > "${logFile}" 2>&1
       childProcess.stdout.on('data', (data) => {
         const output = data.toString();
         stdout += output;
-        console.log('omap_loader stdout:', output);
+        console.log('stdout:', output);
 
         if (progressCallback) {
           if (output.includes('x-load')) {
@@ -513,39 +499,40 @@ exec > "${logFile}" 2>&1
       childProcess.stderr.on('data', (data) => {
         const output = data.toString();
         stderr += output;
-        console.log('omap_loader stderr:', output);
+        console.error('stderr:', output);
       });
 
       childProcess.on('close', (code) => {
-        console.log('omap_loader exited with code:', code);
-
-        if (spawnOptions._watchInterval) {
-          clearInterval(spawnOptions._watchInterval);
-        }
-
-        let finalOutput = stdout;
-        if (spawnOptions._logFile && fs.existsSync(spawnOptions._logFile)) {
-          finalOutput = fs.readFileSync(spawnOptions._logFile, 'utf8');
-          console.log('Final log file output:', finalOutput);
-
-          try {
-            if (fs.existsSync(spawnOptions._batchFile)) fs.unlinkSync(spawnOptions._batchFile);
-            if (fs.existsSync(spawnOptions._logFile)) fs.unlinkSync(spawnOptions._logFile);
-            if (fs.existsSync(spawnOptions._tmpDir)) fs.rmdirSync(spawnOptions._tmpDir);
-          } catch (cleanupError) {
-            console.error('Error cleaning up temp files:', cleanupError);
-          }
-        } else {
-          console.log('Final stdout:', stdout);
-          console.log('Final stderr:', stderr);
-        }
+        const finalOutput = stdout + stderr;
+        console.log(`omap_loader process exited with code ${code}`);
 
         if (code === 0) {
+          const hasTransferred = finalOutput.includes('[+] successfully transfered');
+          const hasJump = finalOutput.includes('[+] jumping to address');
+          const hasSendJump = finalOutput.includes('[+] sending jump command');
+
+          if (hasTransferred || hasJump || hasSendJump) {
+            const progress = {
+              hasXload: finalOutput.includes('x-load.bin'),
+              hasUboot: finalOutput.includes('u-boot.bin'),
+              hasKernel: finalOutput.includes('uImage'),
+              hasJump: hasJump || hasTransferred
+            };
+
           resolve({
             success: true,
-            stdout: finalOutput || stdout,
+              stdout: finalOutput,
+              stderr,
+              progress
+            });
+          } else {
+            resolve({
+              success: false,
+              error: finalOutput || 'Installation failed',
+              stdout: finalOutput,
             stderr
           });
+          }
         } else {
           reject(new Error(`Installation failed with code ${code}\n${finalOutput || stderr}`));
         }

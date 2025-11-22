@@ -4,7 +4,7 @@ import Link from "next/link";
 import { ThemeSwitch } from "./theme-switch";
 import { Flame } from "lucide-react";
 import { usePathname } from "next/navigation";
-import { SignedIn, SignedOut, SignInButton, UserButton } from "@clerk/nextjs";
+import { SignedIn, SignedOut, SignInButton, UserButton, useAuth } from "@clerk/nextjs";
 import { Button } from "@/components/ui/button";
 
 type HeaderProps = {
@@ -13,12 +13,13 @@ type HeaderProps = {
 
 export function Header({ showNav = true }: HeaderProps) {
   const pathname = usePathname();
+  const { isSignedIn } = useAuth();
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-zinc-200/60 dark:border-zinc-800/60 bg-white/95 dark:bg-zinc-950/95 backdrop-blur-xl supports-[backdrop-filter]:bg-white/80 dark:supports-[backdrop-filter]:bg-zinc-950/80 shadow-sm">
       <div className="container flex h-16 items-center justify-between px-4 mx-auto max-w-7xl">
         <div className="flex items-center gap-8">
-          <Link href="/" className="flex items-center gap-2.5 font-semibold group">
+          <Link href={isSignedIn ? "/dashboard" : "/"} className="flex items-center gap-2.5 font-semibold group">
             <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-brand-500 to-brand-600 text-white shadow-lg shadow-brand-500/30 group-hover:shadow-xl group-hover:shadow-brand-500/40 transition-all group-hover:scale-105">
               <Flame className="h-5 w-5" />
             </div>
