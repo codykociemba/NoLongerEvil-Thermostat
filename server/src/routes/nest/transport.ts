@@ -11,10 +11,10 @@ import { IncomingMessage, ServerResponse } from 'http';
 import type { DeviceObject, ClientDeviceObject, Subscription } from '../../lib/types';
 import { DeviceStateService } from '../../services/DeviceStateService';
 import { SubscriptionManager } from '../../services/SubscriptionManager';
-import { ConvexService } from '../../services/ConvexService';
 import { extractWeaveDeviceId } from '../../lib/serialParser';
 import { preserveFanTimer } from '../../utils/fanTimer';
 import { assignStructureId, needsStructureId } from '../../utils/structureAssignment';
+import { AbstractDeviceStateManager } from '@/services/AbstractDeviceStateManager';
 
 /**
  * Handle GET /nest/transport/device/{serial}
@@ -25,9 +25,9 @@ export async function handleTransportGet(
   res: ServerResponse,
   serial: string,
   deviceState: DeviceStateService,
-  convex: ConvexService
+  deviceStateManager: AbstractDeviceStateManager
 ): Promise<void> {
-  await convex.ensureDeviceAlertDialog(serial);
+  await deviceStateManager.ensureDeviceAlertDialog(serial);
   const deviceObjects = await deviceState.getAllForDevice(serial);
 
   const objects = Object.values(deviceObjects).map(obj => ({
@@ -55,7 +55,7 @@ export async function handleTransportSubscribe(
   body: any,
   deviceState: DeviceStateService,
   subscriptionManager: SubscriptionManager,
-  convex: ConvexService
+  deviceStateManager: AbstractDeviceStateManager
 ): Promise<void> {
   const { session, chunked, objects } = body;
 
@@ -90,21 +90,21 @@ export async function handleTransportSubscribe(
         mergedValue = preserveFanTimer(mergedValue, existingValue);
 
         if (needsStructureId(mergedValue)) {
-          const result = await assignStructureId(convex, serial, mergedValue);
+          const result = await assignStructureId(deviceStateManager, serial, mergedValue);
           if (result.assigned) {
-            const owner = await convex.getDeviceOwner(serial);
+            const owner = await deviceStateManager.getDeviceOwner(serial);
             if (owner) {
-              await convex.updateUserAwayStatus(owner.userId);
-              await convex.syncUserWeatherFromDevice(owner.userId);
+              await deviceStateManager.updateUserAwayStatus(owner.userId);
+              await deviceStateManager.syncUserWeatherFromDevice(owner.userId);
             }
           }
         }
 
         if ('away' in value || 'postal_code' in value) {
-          const owner = await convex.getDeviceOwner(serial);
+          const owner = await deviceStateManager.getDeviceOwner(serial);
           if (owner) {
-            await convex.updateUserAwayStatus(owner.userId);
-            await convex.syncUserWeatherFromDevice(owner.userId);
+            await deviceStateManager.updateUserAwayStatus(owner.userId);
+            await deviceStateManager.syncUserWeatherFromDevice(owner.userId);
           }
         }
       }
@@ -208,7 +208,7 @@ export async function handlePut(
   body: any,
   deviceState: DeviceStateService,
   subscriptionManager: SubscriptionManager,
-  convex: ConvexService
+  deviceStateManager: AbstractDeviceStateManager
 ): Promise<void> {
   const { objects } = body;
 
@@ -263,10 +263,10 @@ export async function handlePut(
   }
 
   if (deviceObjectChanged) {
-    const owner = await convex.getDeviceOwner(serial);
+    const owner = await deviceStateManager.getDeviceOwner(serial);
     if (owner) {
-      await convex.updateUserAwayStatus(owner.userId);
-      await convex.syncUserWeatherFromDevice(owner.userId);
+      await deviceStateManager.updateUserAwayStatus(owner.userId);
+      await deviceStateManager.syncUserWeatherFromDevice(owner.userId);
     }
   }
 

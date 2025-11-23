@@ -8,9 +8,10 @@ services:
       - 80:80
     volumes:
       - ./server/.env.local:/app/.env.local
-    depends_on:
-      - backend
-      - dashboard
+      - ./data:/app/data
+    # depends_on:
+    #   - backend
+    #   - dashboard
 
   backend:
     # Change this to :${REV} if you want to pin to a specific version

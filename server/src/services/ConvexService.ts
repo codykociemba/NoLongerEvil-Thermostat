@@ -37,6 +37,8 @@ export class ConvexService extends AbstractDeviceStateManager {
         const CONVEX_URL = environment.CONVEX_URL;
         const CONVEX_ADMIN_KEY = environment.CONVEX_ADMIN_KEY;
 
+        console.debug('Initializing Convex client with URL:', CONVEX_URL, 'Admin Key:', CONVEX_ADMIN_KEY);
+
         if (!CONVEX_URL) {
           console.warn('[Convex] No CONVEX_URL configured, database operations will fail');
           return null;

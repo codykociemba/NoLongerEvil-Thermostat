@@ -114,6 +114,8 @@ export interface CommandResponse {
 export interface EnvironmentConfig {
   CONVEX_URL: string | null;
   CONVEX_ADMIN_KEY: string | null;
+  SQLITE3_ENABLED: boolean | null;
+  SQLITE3_DB_PATH: string | null;
   API_ORIGIN: string;
   PROXY_PORT: number;
   CONTROL_PORT: number;

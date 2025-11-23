@@ -48,7 +48,11 @@ function getEnvBoolean(key: string, defaultValue: boolean): boolean {
  */
 export const environment: EnvironmentConfig = {
   CONVEX_URL: getEnvNullable('CONVEX_URL') || getEnvNullable('NEXT_PUBLIC_CONVEX_URL'),
-  CONVEX_ADMIN_KEY: getEnvNullable('CONVEX_ADMIN_KEY'),
+  CONVEX_ADMIN_KEY: getEnvNullable('CONVEX_ADMIN_KEY') || getEnvNullable('CONVEX_SELF_HOSTED_ADMIN_KEY'),
+
+  SQLITE3_ENABLED: getEnvBoolean('SQLITE3_ENABLED', false),
+  SQLITE3_DB_PATH: getEnvString('SQLITE3_DB_PATH', './data/database.sqlite'),
+  
 
   API_ORIGIN: getEnvString('API_ORIGIN', 'https://backdoor.nolongerevil.com'),
   PROXY_PORT: getEnvInt('PROXY_PORT', 443),
@@ -72,14 +76,20 @@ export function validateEnvironment(): void {
   const warnings: string[] = [];
   const errors: string[] = [];
 
-  if (!environment.CONVEX_URL) {
-    warnings.push('CONVEX_URL not configured - state will not persist');
-  }
+  if (!environment.SQLITE3_ENABLED){
+    if (!environment.CONVEX_URL) {
+      warnings.push('CONVEX_URL not configured - state will not persist');
+    }
 
-  if (!environment.CONVEX_ADMIN_KEY) {
-    warnings.push('CONVEX_ADMIN_KEY not configured - some operations may fail');
+    if (!environment.CONVEX_ADMIN_KEY) {
+      warnings.push('CONVEX_ADMIN_KEY not configured - some operations may fail');
+    }
+  } else {
+    console.log('[Config] SQLite3 storage enabled');
+    if (!environment.SQLITE3_DB_PATH) {
+      errors.push('SQLITE3_DB_PATH must be set when SQLITE3_ENABLED is true');
+    }
   }
-
   if (environment.PROXY_PORT < 1 || environment.PROXY_PORT > 65535) {
     errors.push(`Invalid PROXY_PORT: ${environment.PROXY_PORT} (must be 1-65535)`);
   }
@@ -100,7 +110,12 @@ export function validateEnvironment(): void {
   console.log(`[Config] API Origin: ${environment.API_ORIGIN}`);
   console.log(`[Config] Proxy Port: ${environment.PROXY_PORT}`);
   console.log(`[Config] Control Port: ${environment.CONTROL_PORT}`);
-  console.log(`[Config] Convex: ${environment.CONVEX_URL ? 'Configured' : 'Not configured'}`);
+  console.log(`[Config] State manager: ${environment.SQLITE3_ENABLED ? 'SQLite3' : 'Convex'}`);
+  if (environment.SQLITE3_ENABLED) {
+    console.log(`[Config] SQLite3 DB Path: ${environment.SQLITE3_DB_PATH}`);
+  } else {
+    console.log(`[Config] Convex URL: ${environment.CONVEX_URL ? 'Configured' : 'Not configured'}`);
+  }
   console.log(`[Config] TLS Certificates: ${environment.CERT_DIR || 'Not configured (HTTP only)'}`);
   console.log(`[Config] Debug Logging: ${environment.DEBUG_LOGGING ? 'Enabled' : 'Disabled'}`);
 }

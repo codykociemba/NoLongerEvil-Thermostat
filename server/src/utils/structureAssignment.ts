@@ -8,7 +8,7 @@
  */
 
 import type { StructureAssignmentResult } from '../lib/types';
-import { ConvexService } from '../services/ConvexService';
+import { AbstractDeviceStateManager } from '../services/AbstractDeviceStateManager';
 
 /**
  * Check if device object needs structure_id assignment
@@ -22,7 +22,7 @@ export function needsStructureId(value: Record<string, any>): boolean {
  * Looks up device owner and sets structure_id to their userId (without "user_" prefix)
  */
 export async function assignStructureId(
-  convex: ConvexService,
+  deviceStateManager: AbstractDeviceStateManager,
   serial: string,
   value: Record<string, any>
 ): Promise<StructureAssignmentResult> {
@@ -31,7 +31,7 @@ export async function assignStructureId(
   }
 
   try {
-    const owner = await convex.getDeviceOwner(serial);
+    const owner = await deviceStateManager.getDeviceOwner(serial);
     if (!owner || !owner.userId) {
       console.warn(`[StructureAssignment] No owner found for device ${serial}`);
       return { assigned: false };

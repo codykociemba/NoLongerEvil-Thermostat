@@ -7,14 +7,14 @@
 
 import * as https from 'https';
 import type { WeatherData, StateWeatherCache } from '../lib/types';
-import { ConvexService } from './ConvexService';
 import { environment } from '../config/environment';
+import { AbstractDeviceStateManager } from './AbstractDeviceStateManager';
 
 export class WeatherService {
-  private convex: ConvexService;
+  private deviceStateManager: AbstractDeviceStateManager;
 
-  constructor(convex: ConvexService) {
-    this.convex = convex;
+  constructor(deviceStateManager: AbstractDeviceStateManager) {
+    this.deviceStateManager = deviceStateManager;
   }
 
   /**
@@ -81,7 +81,7 @@ export class WeatherService {
     postalCode: string,
     country: string
   ): Promise<StateWeatherCache | null> {
-    const cached = await this.convex.getWeather(postalCode, country);
+    const cached = await this.deviceStateManager.getWeather(postalCode, country);
 
     if (!cached) {
       return null;
@@ -104,7 +104,7 @@ export class WeatherService {
     country: string,
     data: WeatherData
   ): Promise<void> {
-    await this.convex.upsertWeather(postalCode, country, Date.now(), data);
+    await this.deviceStateManager.upsertWeather(postalCode, country, Date.now(), data);
   }
 
   /**
@@ -128,7 +128,7 @@ export class WeatherService {
           }
         };
 
-        await this.convex.updateWeatherForPostalCode(postalCode, country, weatherDataToSave);
+        await this.deviceStateManager.updateWeatherForPostalCode(postalCode, country, weatherDataToSave);
         console.log(`[WeatherService] Propagated weather to users with postal code ${postalCode},${country}`);
       }
     } catch (err) {

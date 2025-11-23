@@ -78,6 +78,53 @@ prompt_yes_no() {
   done
 }
 
+prompt_components() {
+  local hosting_mode="$1"
+  local build_installer=true
+  local build_firmware=true
+  local build_server=true
+
+  echo "" >&2
+  echo "Choose components to build (all selected by default):" >&2
+  
+  while true; do
+    echo "" >&2
+    echo "  [$([ "$build_installer" = true ] && echo "✓" || echo " ")] 1) Installer  - Electron GUI for flashing firmware" >&2
+    echo "  [$([ "$build_firmware" = true ] && echo "✓" || echo " ")] 2) Firmware   - Custom Nest firmware build" >&2
+    if [ "$hosting_mode" = "selfhosted" ]; then
+      echo "  [$([ "$build_server" = true ] && echo "✓" || echo " ")] 3) Server     - Self-hosted API server" >&2
+    fi
+    echo "" >&2
+    
+    read -r -p "Enter numbers to toggle (e.g., '2' to skip firmware), or press Enter to continue: " response
+    
+    if [ -z "$response" ]; then
+      break
+    fi
+    
+    case "$response" in
+      1)
+        build_installer=$([ "$build_installer" = true ] && echo false || echo true)
+        ;;
+      2)
+        build_firmware=$([ "$build_firmware" = true ] && echo false || echo true)
+        ;;
+      3)
+        if [ "$hosting_mode" = "selfhosted" ]; then
+          build_server=$([ "$build_server" = true ] && echo false || echo true)
+        else
+          echo "Server option only available in self-hosted mode." >&2
+        fi
+        ;;
+      *)
+        echo "Please enter 1, 2$([ "$hosting_mode" = "selfhosted" ] && echo ", or 3")." >&2
+        ;;
+    esac
+  done
+  
+  echo "$build_installer $build_firmware $build_server"
+}
+
 normalize_url() {
   local raw="$1"
   if [[ "$raw" != http://* && "$raw" != https://* ]]; then
@@ -146,7 +193,7 @@ write_env_file() {
   update_env_value "API_ORIGIN" "$1"
   update_env_value "PROXY_PORT" "$2"
   update_env_value "CONTROL_PORT" "$3"
-  cp "$ENV_TEMPLATE" "$SERVER_DIR/.env.local"
+  cp $ENV_TEMPLATE $SERVER_DIR/.env.local
 }
 
 generate_certs() {
@@ -376,8 +423,14 @@ No Longer Evil Installer
 Usage: ./install.sh [OPTIONS]
 
 OPTIONS:
-  --build-only              Build firmware but don't launch installer
-                            (useful for developers building hosted firmware)
+  --firmware-only           Build only firmware (skip installer and server)
+                            Useful for developers building firmware
+
+  --installer-only          Build only installer (skip firmware and server)
+                            Useful when firmware is already built
+
+  --server-only             Build only server (skip firmware and installer)
+                            Only available in self-hosted mode
 
   --generation <gen1|gen2>  Specify device generation (gen1 or gen2)
                             Skips interactive generation prompt
@@ -394,16 +447,19 @@ EXAMPLES:
   # Interactive mode (default)
   ./install.sh
 
-  # Build Gen 1 hosted firmware for developers
-  ./install.sh --build-only --generation gen1 --hosted
+  # Build only Gen 1 hosted firmware
+  ./install.sh --firmware-only --generation gen1 --hosted
 
-  # Build Gen 2 hosted firmware for developers
-  ./install.sh --build-only --generation gen2 --hosted
+  # Build only Gen 2 hosted firmware
+  ./install.sh --firmware-only --generation gen2 --hosted
 
-  # Build self-hosted Gen 2 firmware without launching installer
-  ./install.sh --build-only --generation gen2 --selfhosted
+  # Build only installer (firmware already exists)
+  ./install.sh --installer-only
 
-  # Use hosted mode with Gen 1 (interactive for other options)
+  # Build only self-hosted server
+  ./install.sh --server-only --selfhosted
+
+  # Use hosted mode with Gen 1 (interactive for component selection)
   ./install.sh --hosted --generation gen1
 
 EOF
@@ -411,14 +467,24 @@ EOF
 }
 
 # Parse command line arguments
-BUILD_ONLY=false
+FIRMWARE_ONLY=false
+INSTALLER_ONLY=false
+SERVER_ONLY=false
 GENERATION_ARG=""
 HOSTING_MODE_ARG=""
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --build-only)
-      BUILD_ONLY=true
+    --firmware-only)
+      FIRMWARE_ONLY=true
+      shift
+      ;;
+    --installer-only)
+      INSTALLER_ONLY=true
+      shift
+      ;;
+    --server-only)
+      SERVER_ONLY=true
       shift
       ;;
     --generation)
@@ -451,6 +517,17 @@ while [[ $# -gt 0 ]]; do
       ;;
   esac
 done
+
+# Validate that only one "only" flag is used
+ONLY_FLAGS_COUNT=0
+[ "$FIRMWARE_ONLY" = true ] && ((ONLY_FLAGS_COUNT++)) || true
+[ "$INSTALLER_ONLY" = true ] && ((ONLY_FLAGS_COUNT++)) || true
+[ "$SERVER_ONLY" = true ] && ((ONLY_FLAGS_COUNT++)) || true
+
+if [ $ONLY_FLAGS_COUNT -gt 1 ]; then
+  echo "Error: Only one of --firmware-only, --installer-only, or --server-only can be used at a time"
+  exit 1
+fi
 
 echo "============================================="
 echo "  No Longer Evil Installer"
@@ -544,6 +621,44 @@ else
   echo ""
 fi
 
+# Determine which components to build
+BUILD_INSTALLER=true
+BUILD_FIRMWARE=true
+BUILD_SERVER=true
+
+if [ "$FIRMWARE_ONLY" = true ]; then
+  BUILD_INSTALLER=false
+  BUILD_FIRMWARE=true
+  BUILD_SERVER=false
+  echo "Building firmware only"
+  echo ""
+elif [ "$INSTALLER_ONLY" = true ]; then
+  BUILD_INSTALLER=true
+  BUILD_FIRMWARE=false
+  BUILD_SERVER=false
+  echo "Building installer only"
+  echo ""
+elif [ "$SERVER_ONLY" = true ]; then
+  if [ "$HOSTING_MODE" != "selfhosted" ]; then
+    echo "Error: --server-only can only be used with --selfhosted"
+    exit 1
+  fi
+  BUILD_INSTALLER=false
+  BUILD_FIRMWARE=false
+  BUILD_SERVER=true
+  echo "Building server only"
+  echo ""
+else
+  # Interactive component selection (no flags provided)
+  read BUILD_INSTALLER BUILD_FIRMWARE BUILD_SERVER <<< $(prompt_components "$HOSTING_MODE")
+  echo ""
+  echo "Selected components:"
+  [ "$BUILD_INSTALLER" = true ] && echo "  ✓ Installer"
+  [ "$BUILD_FIRMWARE" = true ] && echo "  ✓ Firmware"
+  [ "$BUILD_SERVER" = true ] && [ "$HOSTING_MODE" = "selfhosted" ] && echo "  ✓ Server"
+  echo ""
+fi
+
 DEFAULT_URL="https://backdoor.nolongerevil.com"
 if [ ! -f "$ENV_TEMPLATE" ]; then
   echo "Could not find $ENV_TEMPLATE. Make sure you're running the script from self-hosting-kit/."
@@ -619,7 +734,7 @@ else
   echo ""
 fi
 
-if [ "$HOSTING_MODE" = "selfhosted" ]; then
+if [ "$HOSTING_MODE" = "selfhosted" ] && [ "$BUILD_FIRMWARE" = true ]; then
   echo ""
   echo "Advanced Firmware Options"
   echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
@@ -644,28 +759,30 @@ if [ "$HOSTING_MODE" = "selfhosted" ]; then
     echo "Backplate simulation disabled"
   fi
 else
-  # For hosted mode, disable advanced features
+  # For hosted mode or when firmware build is skipped, disable advanced features
   ENABLE_ROOT_ACCESS=false
   ENABLE_BACKPLATE_SIM=false
 fi
 
 SHOULD_BUILD_FIRMWARE=false
 
-if [ "$HOSTING_MODE" = "hosted" ]; then
-  SHOULD_BUILD_FIRMWARE=true
-  echo "Building hosted firmware for $NEST_GENERATION..."
-elif [ "$HOSTING_MODE" = "selfhosted" ]; then
-  if [ -f "firmware/installer/resources/firmware/x-load.bin" ] && [ -f "firmware/installer/resources/firmware/u-boot.bin" ] && [ -f "firmware/installer/resources/firmware/uImage" ]; then
-    echo ""
-    if [ "$BUILD_ONLY" = true ] || prompt_yes_no "Firmware files already exist. Rebuild them?" "n"; then
-      SHOULD_BUILD_FIRMWARE=true
-    else
-      echo "Using existing firmware files."
-    fi
-  else
+if [ "$BUILD_FIRMWARE" = true ]; then
+  if [ "$HOSTING_MODE" = "hosted" ]; then
     SHOULD_BUILD_FIRMWARE=true
-    echo ""
-    echo "Firmware files not found. Building firmware..."
+    echo "Building hosted firmware for $NEST_GENERATION..."
+  elif [ "$HOSTING_MODE" = "selfhosted" ]; then
+    if [ -f "firmware/installer/resources/firmware/x-load.bin" ] && [ -f "firmware/installer/resources/firmware/u-boot.bin" ] && [ -f "firmware/installer/resources/firmware/uImage" ]; then
+      echo ""
+      if [ "$FIRMWARE_ONLY" = true ] || prompt_yes_no "Firmware files already exist. Rebuild them?" "n"; then
+        SHOULD_BUILD_FIRMWARE=true
+      else
+        echo "Using existing firmware files."
+      fi
+    else
+      SHOULD_BUILD_FIRMWARE=true
+      echo ""
+      echo "Firmware files not found. Building firmware..."
+    fi
   fi
 fi
 
@@ -696,14 +813,39 @@ if [ -f "firmware/installer/resources/firmware/x-load.bin" ] && [ -f "firmware/i
   echo ""
 fi
 
-if [ "$BUILD_ONLY" = true ]; then
-  echo "Build-only mode complete!"
+# Handle "only" modes - exit early if only one component was requested
+if [ "$FIRMWARE_ONLY" = true ]; then
+  echo "Firmware-only mode complete!"
   echo ""
   echo "Firmware files are located in:"
   echo "  firmware/installer/resources/firmware/"
   echo ""
   echo "To package the installer, run:"
   echo "  cd firmware/installer && npm run package"
+  echo ""
+  exit 0
+fi
+
+if [ "$INSTALLER_ONLY" = true ]; then
+  echo "Installer-only mode complete!"
+  echo ""
+  if [ "$BUILD_INSTALLER" = true ] && [ -f "firmware/installer/resources/firmware/x-load.bin" ]; then
+    launch_installer
+    echo "Installer launched."
+  fi
+  echo ""
+  echo "To package the installer, run:"
+  echo "  cd firmware/installer && npm run package"
+  echo ""
+  exit 0
+fi
+
+if [ "$SERVER_ONLY" = true ]; then
+  echo "Server-only mode complete!"
+  echo ""
+  if [ "$BUILD_SERVER" = true ]; then
+    setup_selfhost
+  fi
   echo ""
   exit 0
 fi
@@ -725,7 +867,7 @@ if [ "$HOSTING_MODE" = "selfhosted" ]; then
   echo "  - ca-cert.pem (CA certificate for firmware)"
   echo ""
 
-  if [ -f "firmware/installer/resources/firmware/x-load.bin" ] && [ -f "firmware/installer/resources/firmware/u-boot.bin" ] && [ -f "firmware/installer/resources/firmware/uImage" ]; then
+  if [ "$BUILD_INSTALLER" = true ] && [ -f "firmware/installer/resources/firmware/x-load.bin" ] && [ -f "firmware/installer/resources/firmware/u-boot.bin" ] && [ -f "firmware/installer/resources/firmware/uImage" ]; then
     launch_installer
   fi
 
@@ -734,10 +876,13 @@ if [ "$HOSTING_MODE" = "selfhosted" ]; then
   echo "  Next Steps"
   echo "============================================="
   echo ""
-  echo "The Electron installer GUI should have launched."
-  echo "If not, you can start it manually with:"
-  echo "  cd firmware/installer && npm run electron:dev"
-  echo ""
+  
+  if [ "$BUILD_INSTALLER" = true ]; then
+    echo "The Electron installer GUI should have launched."
+    echo "If not, you can start it manually with:"
+    echo "  cd firmware/installer && npm run electron:dev"
+    echo ""
+  fi
 
   if [ "$api_origin" = "https://backdoor.nolongerevil.com" ]; then
     echo "After flashing firmware:"
@@ -748,7 +893,7 @@ if [ "$HOSTING_MODE" = "selfhosted" ]; then
 
     exit 0
   else
-    if prompt_yes_no "Create Self-Hosting Server" "n"; then
+    if [ "$BUILD_SERVER" = true ] && prompt_yes_no "Create Self-Hosting Server" "n"; then
       setup_selfhost
       echo ""
     else
@@ -760,7 +905,7 @@ if [ "$HOSTING_MODE" = "selfhosted" ]; then
     fi
   fi
 else
-  if [ -f "firmware/installer/resources/firmware/x-load-gen1.bin" ] && [ -f "firmware/installer/resources/firmware/x-load-gen2.bin" ] && [ -f "firmware/installer/resources/firmware/u-boot.bin" ] && [ -f "firmware/installer/resources/firmware/uImage" ]; then
+  if [ "$BUILD_INSTALLER" = true ] && [ -f "firmware/installer/resources/firmware/x-load-gen1.bin" ] && [ -f "firmware/installer/resources/firmware/x-load-gen2.bin" ] && [ -f "firmware/installer/resources/firmware/u-boot.bin" ] && [ -f "firmware/installer/resources/firmware/uImage" ]; then
     launch_installer
   fi
 
@@ -769,10 +914,14 @@ else
   echo "  Next Steps"
   echo "============================================="
   echo ""
-  echo "The Electron installer GUI should have launched."
-  echo "If not, you can start it manually with:"
-  echo "  cd firmware/installer && npm run electron:dev"
-  echo ""
+  
+  if [ "$BUILD_INSTALLER" = true ]; then
+    echo "The Electron installer GUI should have launched."
+    echo "If not, you can start it manually with:"
+    echo "  cd firmware/installer && npm run electron:dev"
+    echo ""
+  fi
+  
   echo "After flashing firmware:"
   echo "1. Go to https://nolongerevil.com"
   echo "2. Enter your entry code when prompted"
