@@ -164,8 +164,31 @@ export class SQLite3Service extends AbstractDeviceStateManager {
       return {};
     }
 
-    console.warn('[SQLite3] getAllState is not implemented yet.');
-    return {};
+    try {
+      const rows = await db.all(`SELECT serial, object_key, object_revision, object_timestamp, value
+                FROM device;`);
+      console.info(`[SQLite3] Retrieved all device state`);
+
+      const stateStore: DeviceStateStore = {};
+
+      for (const row of rows) {
+        if (!stateStore[row.serial]) {
+          stateStore[row.serial] = {};
+        }
+
+        stateStore[row.serial][row.object_key] = {
+          object_key: row.object_key,
+          object_revision: row.object_revision,
+          object_timestamp: row.object_timestamp,
+          value: JSON.parse(row.value),
+        };
+      }
+
+      return stateStore;
+    } catch (error) {
+      console.error(`[SQLite3] Failed to get all device state:`, error);
+      throw error;
+    }
   }
 
   /**
