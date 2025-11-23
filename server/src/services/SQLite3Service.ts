@@ -239,8 +239,20 @@ export class SQLite3Service extends AbstractDeviceStateManager {
       return null;
     }
 
-    console.warn('[SQLite3] getWeather is not implemented yet.');
-    return null;
+    try {
+      const row = await db.get(`SELECT postal_code, country, fetched_at, data
+                FROM weather_cache
+                WHERE postal_code = ? AND country = ?;`,
+          [postalCode, country]);
+      console.info(`[SQLite3] Retrieved weather cache for ${postalCode}, ${country}`);
+      return row ? {
+        data: JSON.parse(row.data),
+        fetchedAt: row.fetched_at,
+      } : null;
+    } catch (error) {
+      console.error(`[SQLite3] Failed to get weather for ${postalCode}, ${country}:`, error);
+      throw error;
+    }
   }
 
   /**
@@ -258,17 +270,12 @@ export class SQLite3Service extends AbstractDeviceStateManager {
     }
 
     try {
-      db.run(`INSERT INTO weather_cache (postal_code, country, fetched_at, data)
+      await db.run(`INSERT INTO weather_cache (postal_code, country, fetched_at, data)
               VALUES (?, ?, ?, ?)
               ON CONFLICT(postal_code, country) DO UPDATE SET
                 fetched_at = excluded.fetched_at,
                 data = excluded.data;`,
-        [postalCode, country, fetchedAt, JSON.stringify(data)],
-        (err) => {
-          if (err) {
-            throw err;
-          }
-        }
+        [postalCode, country, fetchedAt, JSON.stringify(data)]
       );
     } catch (error) {
       console.error(`[SQLite3] Failed to upsert weather for ${postalCode}, ${country}:`, error);
