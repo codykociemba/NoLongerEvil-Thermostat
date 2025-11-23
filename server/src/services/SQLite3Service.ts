@@ -3,7 +3,9 @@
  * Centralized wrapper for all SQLite3 database operations
  * Provides type-safe methods and error handling for Convex interactions
  */
-import { Database } from 'sqlite3';
+import sqlite3 from 'sqlite3';
+import { open, Database } from 'sqlite';
+
 import type {
   DeviceObject,
   DeviceOwner,
@@ -35,19 +37,14 @@ export class SQLite3Service extends AbstractDeviceStateManager {
     ];
 
     for (const stmt of schemaStatements) {
-      await new Promise<void>((resolve, reject) => {
-
         console.log('[SQLite3] Running schema statement:', stmt);
-        db.run(stmt, (err) => {
-          if (err) {
-            console.error('[SQLite3] Error creating schema:', err);
-            reject(err);
-          } else {
-            console.log('[SQLite3] Created schema');
-            resolve();
-          }
-        });
-      });
+        try {
+        await db.run(stmt);
+        console.log('[SQLite3] Created schema');
+      } catch (error) {
+        console.error('[SQLite3] Failed to execute schema statement:', error);
+        throw error;
+      }
     }
 
     console.log('[SQLite3] Database schema created or already exists.');
@@ -70,13 +67,9 @@ export class SQLite3Service extends AbstractDeviceStateManager {
         const SQLITE3_DB_PATH = path.resolve(environment.SQLITE3_DB_PATH!);
         console.debug('[SQLite3] Initializing db at ', SQLITE3_DB_PATH);
         
-        const db = await new Promise<Database>((resolve, reject) => {
-          const db = new Database(SQLITE3_DB_PATH, (err) => {
-            if (err) {
-              reject(err);
-            }
-            resolve(db);
-          });          
+        const db = await open({
+          filename: SQLITE3_DB_PATH,
+          driver: sqlite3.Database
         });
 
         await this.createSchema(db);
@@ -110,19 +103,15 @@ export class SQLite3Service extends AbstractDeviceStateManager {
     }
 
     try {
-      db.run(`INSERT INTO device (serial, object_key, object_revision, object_timestamp, value)
-              VALUES (?, ?, ?, ?, ?)
-              ON CONFLICT(serial, object_key) DO UPDATE SET
-                object_revision = excluded.object_revision,
-                object_timestamp = excluded.object_timestamp,
-                value = excluded.value;`,
-        [serial, objectKey, revision, timestamp, JSON.stringify(value)],
-        (err) => {
-          if (err) {
-            throw err;
-          }
-        }
-      );
+      await db.run(`INSERT INTO device (serial, object_key, object_revision, object_timestamp, value)
+                VALUES (?, ?, ?, ?, ?)
+                ON CONFLICT(serial, object_key) DO UPDATE SET
+                  object_revision = excluded.object_revision,
+                  object_timestamp = excluded.object_timestamp,
+                  value = excluded.value;`,
+            [serial, objectKey, revision, timestamp, JSON.stringify(value)]);
+
+      console.debug(`[SQLite3] Upserted state for ${serial}/${objectKey}`);
     } catch (error) {
       console.error(`[SQLite3] Failed to upsert state for ${serial}/${objectKey}:`, error);
       throw error;
@@ -135,11 +124,22 @@ export class SQLite3Service extends AbstractDeviceStateManager {
   async getState(serial: string, objectKey: string): Promise<DeviceObject | null> {
     const db = await this.getDb();
     if (!db) {
+      console.warn('[SQLite3] Cannot get state: client not available');
       return null;
     }
 
-    console.warn('[SQLite3] getState is not implemented yet.');
-    return null;
+    try {
+      const row = await db.get(`SELECT object_key, object_revision, object_timestamp, value
+                FROM device
+                WHERE serial = ? AND object_key = ?;`,
+          [serial, objectKey]);
+      
+      console.debug(`[SQLite3] Retrieved state for ${serial}/${objectKey}:`, row);
+      return row ? row as DeviceObject : null;
+    } catch (error) {
+      console.error(`[SQLite3] Failed to get state for ${serial}/${objectKey}:`, error);
+      throw error;
+    }
   }
 
   /**
@@ -242,6 +242,24 @@ export class SQLite3Service extends AbstractDeviceStateManager {
     const db = await this.getDb();
     if (!db) {
       return;
+    }
+
+    try {
+      db.run(`INSERT INTO weather_cache (postal_code, country, fetched_at, data)
+              VALUES (?, ?, ?, ?)
+              ON CONFLICT(postal_code, country) DO UPDATE SET
+                fetched_at = excluded.fetched_at,
+                data = excluded.data;`,
+        [postalCode, country, fetchedAt, JSON.stringify(data)],
+        (err) => {
+          if (err) {
+            throw err;
+          }
+        }
+      );
+    } catch (error) {
+      console.error(`[SQLite3] Failed to upsert weather for ${postalCode}, ${country}:`, error);
+      throw error;
     }
 
     console.warn('[SQLite3] upsertWeather is not implemented yet.');
