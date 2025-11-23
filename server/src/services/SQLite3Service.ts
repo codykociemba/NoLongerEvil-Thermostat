@@ -34,6 +34,14 @@ export class SQLite3Service extends AbstractDeviceStateManager {
         value TEXT NOT NULL,
         PRIMARY KEY (serial, object_key)
       );`,
+
+      `CREATE TABLE IF NOT EXISTS weather_cache (
+        postal_code TEXT NOT NULL,
+        country TEXT NOT NULL,
+        fetched_at INTEGER NOT NULL,
+        data TEXT NOT NULL,
+        PRIMARY KEY (postal_code, country)
+      );`,
     ];
 
     for (const stmt of schemaStatements) {
@@ -111,7 +119,7 @@ export class SQLite3Service extends AbstractDeviceStateManager {
                   value = excluded.value;`,
             [serial, objectKey, revision, timestamp, JSON.stringify(value)]);
 
-      console.debug(`[SQLite3] Upserted state for ${serial}/${objectKey}`);
+      console.info(`[SQLite3] Upserted state for ${serial}/${objectKey}`);
     } catch (error) {
       console.error(`[SQLite3] Failed to upsert state for ${serial}/${objectKey}:`, error);
       throw error;
@@ -133,8 +141,8 @@ export class SQLite3Service extends AbstractDeviceStateManager {
                 FROM device
                 WHERE serial = ? AND object_key = ?;`,
           [serial, objectKey]);
-      
-      console.debug(`[SQLite3] Retrieved state for ${serial}/${objectKey}:`, row);
+      console.info(`[SQLite3] Retrieved state for ${serial}/${objectKey}`);
+
       return row ? row as DeviceObject : null;
     } catch (error) {
       console.error(`[SQLite3] Failed to get state for ${serial}/${objectKey}:`, error);
@@ -318,7 +326,7 @@ export class SQLite3Service extends AbstractDeviceStateManager {
     }
 
     console.warn('[SQLite3] validateApiKey is not implemented yet.');
-    return null;
+    return { userId: 'local-user', permissions: {}, keyId: 'local-key' };
   }
 
   /**
@@ -335,8 +343,8 @@ export class SQLite3Service extends AbstractDeviceStateManager {
       return false;
     }
 
-    console.warn('[SQLite3] checkApiKeyPermission is not implemented yet.');
-    return false;
+    console.warn('[SQLite3] checkApiKeyPermission is not implemented, because local implementation return TRUE.');
+    return true;
   }
 
   /**
