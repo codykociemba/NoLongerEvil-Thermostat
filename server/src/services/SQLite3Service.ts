@@ -143,7 +143,12 @@ export class SQLite3Service extends AbstractDeviceStateManager {
           [serial, objectKey]);
       console.info(`[SQLite3] Retrieved state for ${serial}/${objectKey}`);
 
-      return row ? row as DeviceObject : null;
+      return row ? {
+        object_key: row.object_key,
+        object_revision: row.object_revision,
+        object_timestamp: row.object_timestamp,
+        value: JSON.parse(row.value),
+      } : null;
     } catch (error) {
       console.error(`[SQLite3] Failed to get state for ${serial}/${objectKey}:`, error);
       throw error;
