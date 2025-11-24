@@ -120,10 +120,11 @@ export class WeatherService {
       const locationKey = `${postalCode},${country}`;
       const weatherInfo = weatherData[locationKey];
 
-      if (weatherInfo && weatherInfo.now) {
+      if (weatherInfo && weatherInfo.current) {
         const weatherDataToSave: WeatherData = {
           [locationKey]: {
-            now: weatherInfo.now,
+            current: weatherInfo.current,
+            location: weatherInfo.location,
             forecast: weatherInfo.forecast
           }
         };

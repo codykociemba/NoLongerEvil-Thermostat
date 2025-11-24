@@ -9,10 +9,13 @@ import { ServerResponse } from 'http';
  * Represents a single object in the Nest protocol (device.SERIAL, shared.SERIAL, etc.)
  */
 export interface DeviceObject {
+  serial: string;
   object_key: string;
   object_revision: number;
   object_timestamp: number;
   value: Record<string, any>;
+  db_value?: any;
+  updatedAt: number;
 }
 
 /**
@@ -55,6 +58,7 @@ export interface Subscription {
 export interface EntryKey {
   value: string;
   expires: number;
+  claimedBy: string;
 }
 
 /**
@@ -62,13 +66,20 @@ export interface EntryKey {
  */
 export interface WeatherData {
   [location: string]: {
-    now: {
+    current: {
       temp_c: number;
       temp_f: number;
       condition: string;
       humidity: number;
       wind_kph: number;
       wind_mph: number;
+    };
+    location: {
+      zip: string;
+      city: string;
+      state: string;
+      country: string;
+      short_name: string;
     };
     forecast: Array<{
       date: string;
@@ -128,10 +139,35 @@ export interface EnvironmentConfig {
 }
 
 /**
+ * State User information
+ */
+export interface UserInfo {
+  clerkId: string,
+  email: string,
+  createdAt: number;
+}
+
+/**
+ * State User
+ */
+export interface UserState {
+  acknowledged_onboarding_screens: Array<string>;
+  email: string;
+  name: string;
+  obsidian_version: string;
+  profile_image_url: string;
+  short_name: string;
+  structures: Array<string>;
+  structure_memberships: Array<StructureState>;
+}
+
+/**
  * State Device Owner Response
  */
 export interface DeviceOwner {
   userId: string;
+  serial: string;
+  createdAt: number;
 }
 
 /**
@@ -170,6 +206,22 @@ export interface FanTimerState {
 }
 
 /**
+ * Structure State
+ */
+export interface StructureState {
+  structure: string;
+  roles: Array<string>;
+}
+
+/**
+ * Dialog State
+ */
+export interface DialogState {
+  dialog_data: string;
+  dialog_id: string;
+}
+
+/**
  * Structure Assignment Result
  */
 export interface StructureAssignmentResult {
@@ -183,4 +235,40 @@ export interface StructureAssignmentResult {
 export interface NotificationResult {
   notified: number;
   removed: number;
+}
+
+/**
+ * API Key
+ */
+export interface APIKey {
+  id?: number;
+  keyHash: string;
+  keyPreview: string;
+  userId: string;
+  name: string;
+  permissions: APIKeyPermissions;
+  db_perms?: string;
+  createdAt: number;
+  expiresAt: number;
+  lastUsedAt: number;
+}
+
+/**
+ * API Key Permissions
+ */
+export interface APIKeyPermissions {
+  serials: Array<string>;
+  scopes: Array<string>;
+}
+
+/**
+ * Device Shares
+ */
+export interface DeviceSharedWith {
+  ownerId: string;
+  sharedWithUserId: string;
+  serial: string;
+  permissions: APIKeyPermissions;
+  db_perms: string;
+  createdAt: number;
 }

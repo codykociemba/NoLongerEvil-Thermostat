@@ -117,6 +117,8 @@ export async function handleTransportSubscribe(
     }
 
     const responseObj: DeviceObject = {
+      serial: "",
+      updatedAt: 0,
       object_revision: serverObj?.object_revision || 0,
       object_timestamp: serverObj?.object_timestamp || 0,
       object_key,
