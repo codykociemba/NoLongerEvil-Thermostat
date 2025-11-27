@@ -434,7 +434,7 @@ echo "  No Longer Evil Installer"
 echo "============================================="
 echo ""
 
-require_cmd node npm openssl awk mktemp
+require_cmd openssl awk mktemp
 
 check_docker_permissions() {
   if command -v docker >/dev/null 2>&1; then
