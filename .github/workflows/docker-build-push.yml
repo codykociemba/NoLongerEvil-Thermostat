@@ -2,18 +2,9 @@ name: Build and Push Docker Image
 
 on:
   push:
-    branches:
-      - main
-      - master
-      # Uncomment to build on all branches:
-      # - '**'
+    branches: [open-source-prototype]
     tags:
       - "v*"
-  pull_request:
-    # Optional: uncomment to build on PRs (but won't push)
-    # branches:
-    #   - main
-    #   - master
 
 env:
   IMAGE_NAME: nolongerevil
