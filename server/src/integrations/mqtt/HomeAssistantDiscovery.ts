@@ -32,8 +32,8 @@ export function buildClimateDiscovery(
     // Device name
     name: deviceName,
 
-    // Object ID (used for entity naming)
-    object_id: `nest_${serial}`,
+    // NEW: Updated from object_id to default_entity_id to fix HA Core 2026 deprecation warnings
+    default_entity_id: `climate.nest_${serial}`,
 
     // Device info (groups all entities together)
     device: {
@@ -108,6 +108,53 @@ export function buildClimateDiscovery(
 }
 
 /**
+ * Build Home Assistant discovery payload for Humidifier
+ * NEW: Added for Nest Humidifier support
+ */
+export function buildHumidifierDiscovery(
+  serial: string,
+  deviceName: string,
+  topicPrefix: string
+): any {
+  return {
+    unique_id: `nolongerevil_${serial}_humidifier`,
+    name: `${deviceName} Humidifier`,
+    default_entity_id: `humidifier.nest_${serial}_humidifier`,
+    device: {
+      identifiers: [`nolongerevil_${serial}`],
+      name: deviceName,
+    },
+    availability: {
+      topic: `${topicPrefix}/${serial}/availability`,
+      payload_available: 'online',
+      payload_not_available: 'offline',
+    },
+    // 1. Switch (On/Off) - Direct to /ha/ topic
+    command_topic: `${topicPrefix}/${serial}/ha/humidifier_state/set`,
+    state_topic: `${topicPrefix}/${serial}/ha/humidifier_state`,
+    payload_on: 'true',
+    payload_off: 'false',
+    
+    // 2. Slider (Target) - Direct to /ha/ topic
+    target_humidity_command_topic: `${topicPrefix}/${serial}/ha/target_humidity/set`,
+    target_humidity_state_topic: `${topicPrefix}/${serial}/device/target_humidity`,
+    min_humidity: 10,
+    max_humidity: 60,
+    
+    // 3. Status
+    action_topic: `${topicPrefix}/${serial}/ha/humidifier_action`,
+    current_humidity_topic: `${topicPrefix}/${serial}/ha/current_humidity`,
+    
+    device_class: 'humidifier',
+    origin: {
+        name: 'NoLongerEvil',
+        sw_version: '1.0.0'
+    },
+    qos: 1
+  };
+}
+
+/**
  * Build Home Assistant discovery payload for temperature sensor
  */
 export function buildTemperatureSensorDiscovery(
@@ -117,7 +164,7 @@ export function buildTemperatureSensorDiscovery(
   return {
     unique_id: `nolongerevil_${serial}_temperature`,
     name: `Temperature`,
-    object_id: `nest_${serial}_temperature`,
+    default_entity_id: `sensor.nest_${serial}_temperature`,
 
     device: {
       identifiers: [`nolongerevil_${serial}`],
@@ -148,7 +195,7 @@ export function buildHumiditySensorDiscovery(
   return {
     unique_id: `nolongerevil_${serial}_humidity`,
     name: `Humidity`,
-    object_id: `nest_${serial}_humidity`,
+    default_entity_id: `sensor.nest_${serial}_humidity`,
 
     device: {
       identifiers: [`nolongerevil_${serial}`],
@@ -179,7 +226,7 @@ export function buildOutdoorTemperatureSensorDiscovery(
   return {
     unique_id: `nolongerevil_${serial}_outdoor_temperature`,
     name: `Outdoor Temperature`,
-    object_id: `nest_${serial}_outdoor_temperature`,
+    default_entity_id: `sensor.nest_${serial}_outdoor_temperature`,
 
     device: {
       identifiers: [`nolongerevil_${serial}`],
@@ -210,7 +257,7 @@ export function buildOccupancyBinarySensorDiscovery(
   return {
     unique_id: `nolongerevil_${serial}_occupancy`,
     name: `Occupancy`,
-    object_id: `nest_${serial}_occupancy`,
+    default_entity_id: `binary_sensor.nest_${serial}_occupancy`,
 
     device: {
       identifiers: [`nolongerevil_${serial}`],
@@ -242,7 +289,7 @@ export function buildFanBinarySensorDiscovery(
   return {
     unique_id: `nolongerevil_${serial}_fan`,
     name: `Fan`,
-    object_id: `nest_${serial}_fan`,
+    default_entity_id: `binary_sensor.nest_${serial}_fan`,
 
     device: {
       identifiers: [`nolongerevil_${serial}`],
@@ -273,7 +320,7 @@ export function buildLeafBinarySensorDiscovery(
   return {
     unique_id: `nolongerevil_${serial}_leaf`,
     name: `Eco Mode`,
-    object_id: `nest_${serial}_leaf`,
+    default_entity_id: `binary_sensor.nest_${serial}_leaf`,
 
     device: {
       identifiers: [`nolongerevil_${serial}`],
@@ -309,6 +356,11 @@ export async function publishThermostatDiscovery(
     const deviceName = await resolveDeviceName(serial, deviceState);
 
     console.log(`[HA Discovery] Publishing discovery for ${serial} (${deviceName})`);
+    
+    // 1. Fetch Device Data for Capabilities Check
+    // We check if the device actually has a humidifier before creating the entity
+    const deviceObj = await deviceState.get(serial, `device.${serial}`);
+    const hasHumidifier = deviceObj?.value?.has_humidifier === true;
 
     // Climate entity (main thermostat control)
     // Always uses Celsius - HA handles user display preferences
@@ -318,6 +370,16 @@ export async function publishThermostatDiscovery(
       `${discoveryPrefix}/climate/nest_${serial}/thermostat/config`,
       climateConfig
     );
+
+    // Humidifier (Conditional)
+    if (hasHumidifier) {
+      const humConfig = buildHumidifierDiscovery(serial, deviceName, topicPrefix);
+      await publishDiscoveryMessage(
+        client,
+        `${discoveryPrefix}/humidifier/nest_${serial}/humidifier/config`,
+        humConfig
+      );
+    }
 
     // Temperature sensor
     const tempConfig = buildTemperatureSensorDiscovery(serial, topicPrefix);
@@ -405,6 +467,7 @@ export async function removeDeviceDiscovery(
 ): Promise<void> {
   const topics = [
     `${discoveryPrefix}/climate/nest_${serial}/thermostat/config`,
+    `${discoveryPrefix}/humidifier/nest_${serial}/humidifier/config`, // Added Humidifier
     `${discoveryPrefix}/sensor/nest_${serial}/temperature/config`,
     `${discoveryPrefix}/sensor/nest_${serial}/humidity/config`,
     `${discoveryPrefix}/sensor/nest_${serial}/outdoor_temperature/config`,
