@@ -79,9 +79,11 @@ export class MqttIntegration extends BaseIntegration {
 
       await this.subscribeToCommands();
 
-      await this.publishDiscoveryMessages();
-
+      // Publish Initial State FIRST to populate data for discovery check
       await this.publishInitialState();
+
+      // Discovery now runs after data is loaded (checking for has_humidifier)
+      await this.publishDiscoveryMessages();
 
       this.startDeviceWatching();
 
@@ -443,6 +445,49 @@ export class MqttIntegration extends BaseIntegration {
           }
           break;
 
+        case 'target_humidity':
+          let humVal = parseFloat(valueStr);
+          // 1. Validation (10-60 range, ignore -1)
+          if (!isNaN(humVal) && humVal >= 10 && humVal <= 60) {
+            // 2. Rounding
+            humVal = Math.round(humVal / 5) * 5;
+            console.log(`[MQTT:${this.userId}] Setting Humidity Target: ${humVal}%`);
+            // 3. Atomic Update (Value + Enable)
+            await this.updateSharedFields(serial, sharedObj, {
+              target_humidity: humVal,
+              target_humidity_enabled: true
+            });
+            await this.updateDeviceFields(serial, deviceObj, {
+              target_humidity: humVal,
+              target_humidity_enabled: true
+            });
+          }
+          break;
+
+        case 'humidifier_enabled':
+        case 'target_humidity_enabled':
+          const isEnabled = valueStr === 'true';
+          console.log(`[MQTT:${this.userId}] Setting Humidifier Enabled: ${isEnabled}`);
+          if (isEnabled) {
+            // Turn ON: Default to 40% if current target is bad
+            const currentTgt = sharedObj.value.target_humidity;
+            const isValidTarget = (currentTgt !== undefined && currentTgt >= 10 && currentTgt <= 60);
+            const safeTgt = isValidTarget ? currentTgt : 40;
+            await this.updateSharedFields(serial, sharedObj, {
+              target_humidity_enabled: true,
+              target_humidity: safeTgt
+            });
+            await this.updateDeviceFields(serial, deviceObj, {
+              target_humidity_enabled: true,
+              target_humidity: safeTgt
+            });
+          } else {
+            // Turn OFF: Just disable flag
+            await this.updateSharedValue(serial, sharedObj, 'target_humidity_enabled', false);
+            await this.updateDeviceValue(serial, deviceObj, 'target_humidity_enabled', false);
+          }
+          break;
+
         default:
           console.warn(`[MQTT:${this.userId}] Unknown HA command: ${command}`);
       }
@@ -462,6 +507,18 @@ export class MqttIntegration extends BaseIntegration {
       ...currentObj.value,
       [field]: value,
     };
+    const newRevision = currentObj.object_revision + 1;
+    const newTimestamp = Date.now();
+
+    const updatedObj = await this.deviceState.upsert(serial, objectKey, newRevision, newTimestamp, newValue);
+    const notifyResult = this.subscriptionManager.notify(serial, objectKey, updatedObj);
+    console.log(`[MQTT:${this.userId}] Notified ${notifyResult.notified} subscriber(s) for ${serial}/${objectKey}`);
+  }
+
+  // Helper for atomic updates to shared state
+  private async updateSharedFields(serial: string, currentObj: any, fields: Record<string, any>): Promise<void> {
+    const objectKey = `shared.${serial}`;
+    const newValue = { ...currentObj.value, ...fields };
     const newRevision = currentObj.object_revision + 1;
     const newTimestamp = Date.now();
 
@@ -667,6 +724,23 @@ export class MqttIntegration extends BaseIntegration {
       if (shared.target_temperature_high !== null && shared.target_temperature_high !== undefined) {
         await this.publish(`${prefix}/${serial}/ha/target_temperature_high`, String(shared.target_temperature_high), { retain: true, qos: 0 });
       }
+
+      // Humidifier State
+      const targetHum = device.target_humidity ?? shared.target_humidity;
+      if (targetHum !== undefined && targetHum >= 10 && targetHum <= 60) {
+        await this.publish(`${prefix}/${serial}/device/target_humidity`, String(targetHum), { retain: true, qos: 0 });
+      }
+
+      const rawEnabled = shared.target_humidity_enabled === true || device.target_humidity_enabled === true;
+      const isTargetOff = targetHum === -1;
+      const isEnabled = rawEnabled && !isTargetOff;
+      await this.publish(`${prefix}/${serial}/ha/humidifier_enabled`, String(isEnabled), { retain: true, qos: 0 });
+
+      const valveState = String(device.humidifier_state).toLowerCase();
+      const isValveOpen = valveState === 'true' || valveState === 'on';
+      let humAction = 'idle';
+      if (isEnabled && isValveOpen) humAction = 'humidifying';
+      await this.publish(`${prefix}/${serial}/ha/humidifier_action`, humAction, { retain: true, qos: 0 });
 
       const haMode = nestModeToHA(shared.target_temperature_type);
       await this.publish(`${prefix}/${serial}/ha/mode`, haMode, { retain: true, qos: 0 });
