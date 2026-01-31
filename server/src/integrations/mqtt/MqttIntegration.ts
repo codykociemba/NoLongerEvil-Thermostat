@@ -394,6 +394,18 @@ export class MqttIntegration extends BaseIntegration {
         case 'mode':
           const nestMode = haModeToNest(valueStr);
           await this.updateSharedValue(serial, sharedObj, 'target_temperature_type', nestMode);
+
+          // Publish "None" to temperature topics that are not relevant for the new mode
+          // This fixes the HA frontend which prioritizes target_temperature over range values
+          // See: ha-state-control-climate-temperature.ts - _supportsTargetTemperature check comes first
+          if (valueStr === 'heat_cool') {
+            // Entering range mode: clear single target_temperature so range slider shows
+            await this.publish(`${prefix}/${serial}/ha/target_temperature`, 'None', { retain: true, qos: 0 });
+          } else {
+            // Entering heat/cool/off mode: clear range values so single slider shows
+            await this.publish(`${prefix}/${serial}/ha/target_temperature_low`, 'None', { retain: true, qos: 0 });
+            await this.publish(`${prefix}/${serial}/ha/target_temperature_high`, 'None', { retain: true, qos: 0 });
+          }
           break;
 
         case 'target_temperature':
@@ -656,19 +668,28 @@ export class MqttIntegration extends BaseIntegration {
         await this.publish(`${prefix}/${serial}/ha/current_humidity`, String(device.current_humidity), { retain: true, qos: 0 });
       }
 
-      if (shared.target_temperature !== null && shared.target_temperature !== undefined) {
-        await this.publish(`${prefix}/${serial}/ha/target_temperature`, String(shared.target_temperature), { retain: true, qos: 0 });
-      }
-
-      if (shared.target_temperature_low !== null && shared.target_temperature_low !== undefined) {
-        await this.publish(`${prefix}/${serial}/ha/target_temperature_low`, String(shared.target_temperature_low), { retain: true, qos: 0 });
-      }
-
-      if (shared.target_temperature_high !== null && shared.target_temperature_high !== undefined) {
-        await this.publish(`${prefix}/${serial}/ha/target_temperature_high`, String(shared.target_temperature_high), { retain: true, qos: 0 });
-      }
-
       const haMode = nestModeToHA(shared.target_temperature_type);
+
+      // Publish temperatures based on current mode to fix HA frontend display
+      // The frontend prioritizes target_temperature over range values, so we must
+      // publish "None" for the irrelevant temperature attributes based on mode
+      if (haMode === 'heat_cool') {
+        // Range mode: publish high/low, clear single target
+        await this.publish(`${prefix}/${serial}/ha/target_temperature`, 'None', { retain: true, qos: 0 });
+        if (shared.target_temperature_low !== null && shared.target_temperature_low !== undefined) {
+          await this.publish(`${prefix}/${serial}/ha/target_temperature_low`, String(shared.target_temperature_low), { retain: true, qos: 0 });
+        }
+        if (shared.target_temperature_high !== null && shared.target_temperature_high !== undefined) {
+          await this.publish(`${prefix}/${serial}/ha/target_temperature_high`, String(shared.target_temperature_high), { retain: true, qos: 0 });
+        }
+      } else {
+        // Single temperature mode (heat/cool/off): publish single target, clear range
+        if (shared.target_temperature !== null && shared.target_temperature !== undefined) {
+          await this.publish(`${prefix}/${serial}/ha/target_temperature`, String(shared.target_temperature), { retain: true, qos: 0 });
+        }
+        await this.publish(`${prefix}/${serial}/ha/target_temperature_low`, 'None', { retain: true, qos: 0 });
+        await this.publish(`${prefix}/${serial}/ha/target_temperature_high`, 'None', { retain: true, qos: 0 });
+      }
       await this.publish(`${prefix}/${serial}/ha/mode`, haMode, { retain: true, qos: 0 });
 
       const action = await deriveHvacAction(serial, this.deviceState);
