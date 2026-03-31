@@ -57,6 +57,18 @@ function ErrorScreen({ error, onRetry }) {
             Try Again
           </button>
         </div>
+
+        <p className="text-center text-sm text-slate-500">
+          Need help?{' '}
+          <a
+            href="https://docs.nolongerevil.com/hosted/troubleshooting"
+            target="_blank"
+            rel="noreferrer"
+            className="text-primary-400 hover:text-primary-300 underline"
+          >
+            View troubleshooting docs
+          </a>
+        </p>
       </div>
     </div>
   );

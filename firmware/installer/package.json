@@ -1,6 +1,6 @@
 {
   "name": "nolongerevil-installer",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "NoLongerEvil Thermostat Firmware Installer",
   "main": "electron/main.js",
   "author": "NoLongerEvil",

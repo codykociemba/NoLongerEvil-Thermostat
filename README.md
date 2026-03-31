@@ -2,7 +2,7 @@
 
 [![Buy Me A Coffee](https://img.shields.io/badge/Buy%20Me%20A%20Coffee-donate-yellow.svg)](https://buymeacoffee.com/codykociemba)
 [![Discord](https://img.shields.io/badge/Discord-Join%20Us-5865F2?logo=discord&logoColor=white)](https://discord.gg/hackhouse)
-[![Release](https://img.shields.io/badge/Release-v1.0.0-blue)](https://github.com/codykociemba/NoLongerEvil-Thermostat/releases/tag/v1.0.0)
+[![Release](https://img.shields.io/badge/Release-v1.0.1-blue)](https://github.com/codykociemba/NoLongerEvil-Thermostat/releases/tag/v1.0.1)
 
 <div align="center">
   <a href="https://bounties.fulu.org/bounties/nest-learning-thermostat-gen-1-2">
