@@ -15,12 +15,12 @@ download_toolchain() {
     return 0
   fi
 
-  echo "[→] Downloading ARM toolchain from Chumby..."
+  echo "[→] Downloading ARM toolchain from embeddedTS..."
   mkdir -p deps/toolchain
   cd deps/toolchain
 
   curl -L -f \
-    "http://files.chumby.com/toolchain/arm-2008q3-72-arm-none-linux-gnueabi-i686-pc-linux-gnu.tar.bz2" \
+    "https://files.embeddedts.com/ftp/ts-socket-macrocontrollers/ts-4200-linux/cross-toolchains/arm-2008q3-72-arm-none-linux-gnueabi-i686-pc-linux-gnu.tar.bz2" \
     -o toolchain.tar.bz2
 
   if [ ! -f toolchain.tar.bz2 ] || [ ! -s toolchain.tar.bz2 ]; then
