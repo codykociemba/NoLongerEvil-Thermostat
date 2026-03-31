@@ -87,13 +87,25 @@ else
   log_writer "Get existing cloudregisterurl."
   get_cloudregisterurl
 fi
+UPTIME=$(awk '{print int($1)}' /proc/uptime)
+IS_DEFAULT=$(echo "$CURRENT_URL" | grep -c "backdoor.nolongerevil.com")
+SETUP_LOCK="$NEST_CONFIG_DIR/.setup_done"
 if [[ "$REQUEST_METHOD" == "POST" ]]; then
   INITIALIZEID=$(printf '%s\n' "$RAW_BODY" | busybox2 sed -n 's/.*"initialize":"\([^"]*\)".*/\1/p')
-  if [[ -n "$INITIALIZEID" ]]; then                                                                
-    if [[ "$DEVICE_NAME" == "$INITIALIZEID" ]]; then                                               
-      HTTP_OUTPUT=`printf '{"api_key":"%s"}' "$API_KEY"`             
-      return_response "200" "$HTTP_OUTPUT"                                                         
-    fi                                                                                             
+  if [[ -n "$INITIALIZEID" ]]; then
+    if [[ "$DEVICE_NAME" == "$INITIALIZEID" ]]; then
+      HTTP_OUTPUT=`printf '{"api_key":"%s"}' "$API_KEY"`
+      return_response "200" "$HTTP_OUTPUT"
+    fi
+  fi
+
+  # First-boot setup window: unconfigured + booted within 30 minutes + not already used
+  SETUP_REQUEST=$(printf '%s\n' "$RAW_BODY" | busybox2 sed -n 's/.*"setup":"\([^"]*\)".*/\1/p')
+  if [[ "$SETUP_REQUEST" == "true" && "$IS_DEFAULT" -eq 1 && "$UPTIME" -lt 1800 && ! -f "$SETUP_LOCK" ]]; then
+    log_writer "First-boot setup window active. Granting api_key."
+    touch "$SETUP_LOCK"
+    HTTP_OUTPUT=`printf '{"api_key":"%s","device_name":"%s"}' "$API_KEY" "$DEVICE_NAME"`
+    return_response "200" "$HTTP_OUTPUT"
   fi
 
   API_TOKEN=$(printf '%s\n' "$RAW_BODY" | busybox2 sed -n 's/.*"api_key":"\([^"]*\)".*/\1/p')
@@ -118,7 +130,8 @@ if [[ "$REQUEST_METHOD" == "POST" ]]; then
       cp $TARGET_FILE $BACKUP_FILE
       NEW_URL="$NEW_URL/entry"
       log_writer "Replace existing url with new url."
-      busybox2 sed -i 's|<a key="cloudregisterurl" value="[^"]*"|<a key="cloudregisterurl" value="'$NEW_URL'"|g' $TARGET_FILE
+      ESCAPED_URL=$(printf '%s' "$NEW_URL" | busybox2 sed 's/[&|]/\\&/g')
+      busybox2 sed -i "s|<a key=\"cloudregisterurl\" value=\"[^\"]*\"|<a key=\"cloudregisterurl\" value=\"${ESCAPED_URL}\"|g" $TARGET_FILE
       log_writer "Get new cloudregisterurl."
       get_cloudregisterurl
       sleep 10 && /etc/init.d/nestlabs restart &

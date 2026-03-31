@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(find C:/Users/God/Documents/HackHouse/NoLongerEvil-Thermostat/docs/solutions -name *.md)",
+      "Bash(ls /c/Users/God/Documents/HackHouse/NoLongerEvil-Thermostat/server/src/**/)",
+      "Bash(find /c/Users/God/Documents/HackHouse/Chucky/chuckys-army -name *.ts -o -name *.tsx -o -name *.sh)",
+      "Bash(find /c/Users/God/Documents/HackHouse/NoLongerEvil-Thermostat -name *.ts -o -name *.tsx -o -name *.sh -o -name *.cgi)",
+      "mcp__plugin_context7_context7__resolve-library-id",
+      "WebSearch",
+      "mcp__plugin_context7_context7__query-docs",
+      "Bash(find /c/Users/God/Documents/HackHouse/NoLongerEvil-Thermostat/firmware/installer -name *.ts -o -name *.js)",
+      "Bash(find /c/Users/God/Documents/HackHouse/NoLongerEvil-Thermostat -name *.json)",
+      "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\(json.dumps\\({k:v for k,v in d.get\\(''''dependencies'''',{}\\).items\\(\\)}, indent=2\\)\\)\")"
+    ]
+  }
+}

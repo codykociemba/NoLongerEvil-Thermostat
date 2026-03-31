@@ -27,33 +27,29 @@ npm run electron:dev
 
 ## Building
 
-### Build for Current Platform
+### Build for All Platforms
 
 ```bash
-npm run electron:build
+npm run package
 ```
 
 ### Build for Specific Platforms
 
 macOS:
 ```bash
-npm run electron:build:mac
-```
-
-Windows:
-```bash
-npm run electron:build:win
+npm run package:mac
 ```
 
 Linux:
 ```bash
-npm run electron:build:linux
+npm run package:linux
 ```
+
+> **Note:** Windows builds are not officially supported. For Windows development, use `npm run electron:dev`.
 
 ## Distribution Files
 
-After building, you'll find:
+After building, you'll find the output in the `dist/` directory:
 
-- **macOS**: `dist-electron/NoLongerEvil Installer.dmg`
-- **Windows**: `dist-electron/NoLongerEvil Installer Setup.exe`
-- **Linux**: `dist-electron/NoLongerEvil Installer.AppImage`
+- **macOS**: `dist/nolongerevil-installer-mac-x64.zip`
+- **Linux**: `dist/nolongerevil-installer-linux-x86_64.AppImage`

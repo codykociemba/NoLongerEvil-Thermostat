@@ -49,7 +49,6 @@ DEBUG_PAUSE=false
 ENABLE_BACKPLATE_SIM=false
 ENABLE_ROOT_ACCESS=false
 ROOT_PASSWORD="nolongerevil"
-HOSTED_MODE=false
 
 if [ -t 1 ]; then
   RED='\033[0;31m'
@@ -195,10 +194,6 @@ parse_args() {
         ;;
       --yes|-y|--non-interactive)
         NON_INTERACTIVE=true
-        shift
-        ;;
-      --hosted)
-        HOSTED_MODE=true
         shift
         ;;
       --help|-h)
@@ -484,9 +479,7 @@ build_firmware_multi_gen() {
       CA_CERT_CONTENT=""
       USE_CUSTOM_CERT=false
 
-      # For hosted mode or default API URL, use the default NoLongerEvil certificate
-      if [ "$HOSTED_MODE" = true ] || [ "$API_URL" = "http://backdoor.nolongerevil.com" ]; then
-        CA_CERT_CONTENT="-----BEGIN CERTIFICATE-----
+      CA_CERT_CONTENT="-----BEGIN CERTIFICATE-----
 MIIF+TCCA+GgAwIBAgIUP0dbiF2u6BuJE/7m7jN1amlzSnowDQYJKoZIhvcNAQEL
 BQAwgYsxCzAJBgNVBAYTAlVTMRMwEQYDVQQIDApDYWxpZm9ybmlhMRIwEAYDVQQH
 DAlQYWxvIEFsdG8xEjAQBgNVBAoMCU5lc3QgTGFiczENMAsGA1UECwwETmVzdDEw
@@ -520,14 +513,8 @@ EhULhOcnoCE+4dp6o4klYSoLkg8rVWyVa5f4iDwD51DMAcsAs2TU6mvIVHRodlu1
 u7+mT2BE1N5Y2xuBnDXFy/fzYT/XferYBOHP7+rWSopJH4epRJnp55lUsEAyP0VQ
 +O8glPffIxvKO2/1ZxPHotDoSZtWe28cHUODojbsd1PpfCioQqkrUzWNLoZw
 -----END CERTIFICATE-----"
-        USE_CUSTOM_CERT=true
-        print_success "Loaded default NoLongerEvil CA certificate for embedding"
-      # For self-hosted mode with custom API URL, try to load custom certificate
-      elif [ -f "/server/certs/ca-cert.pem" ]; then
-        CA_CERT_CONTENT=$(cat /server/certs/ca-cert.pem)
-        USE_CUSTOM_CERT=true
-        print_success "Loaded custom CA certificate for embedding"
-      fi
+      USE_CUSTOM_CERT=true
+      print_success "Loaded NoLongerEvil CA certificate for embedding"
 
       cat > "$ROOTME_SCRIPT" << ROOTME_EOF
 #!/bin/sh
@@ -757,16 +744,6 @@ print_results() {
   echo
   echo -e "${BOLD}${GREEN}All firmware files are ready in: firmware/${NC}"
   echo
-
-  if [ "$NEED_CUSTOM_BUILD" = true ]; then
-    SERVER_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)/server"
-    echo -e "${BOLD}SSL Certificates:${NC}"
-    echo "  Server certificates in: $SERVER_DIR/certs/"
-    echo "  - nest_server.crt (server certificate)"
-    echo "  - nest_server.key (server private key)"
-    echo "  - ca-cert.pem (CA certificate for firmware)"
-    echo
-  fi
 
   if [ "$ENABLE_BACKPLATE_SIM" = true ]; then
     echo -e "${BOLD}${YELLOW}Backplate Simulator:${NC}"

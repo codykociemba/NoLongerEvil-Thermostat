@@ -1,4 +1,9 @@
 const { app, BrowserWindow, ipcMain, shell, dialog } = require('electron');
+
+// Load .env in development so NLE_DEBUG_SKIP_FLASH and similar flags work
+if (process.env.NODE_ENV === 'development') {
+  try { require('dotenv').config(); } catch {}
+}
 const path = require('path');
 const { checkSystem, installFirmware, detectDevice } = require('./usb-handler');
 const { installWinUSBDriver } = require('./windows-driver');
@@ -61,6 +66,18 @@ app.on('window-all-closed', () => {
 });
 
 ipcMain.handle('check-system', async () => {
+  if (process.env.NLE_DEBUG_SKIP_FLASH === 'true') {
+    return {
+      platform: process.platform,
+      arch: process.arch,
+      hasLibusb: true,
+      needsLibusb: false,
+      hasWindowsDriver: true,
+      needsWindowsDriver: false,
+      isAdmin: true,
+      missingFiles: [],
+    };
+  }
   try {
     return await checkSystem();
   } catch (error) {
@@ -83,12 +100,32 @@ ipcMain.handle('detect-device', async () => {
   }
 });
 
+function sendToWindow(channel, data) {
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send(channel, data);
+  }
+}
+
 ipcMain.handle('install-firmware', async (event, options) => {
   try {
+    if (process.env.NLE_DEBUG_SKIP_FLASH === 'true') {
+      const steps = [
+        { stage: 'waiting', message: 'Detecting device...', percent: 0 },
+        { stage: 'xload', message: 'Sending x-load bootloader...', percent: 33 },
+        { stage: 'kernel', message: 'Flashing firmware...', percent: 66 },
+        { stage: 'complete', message: 'Complete', percent: 100 },
+      ];
+      for (const step of steps) {
+        sendToWindow('installation-progress', step);
+        await new Promise(r => setTimeout(r, 600));
+      }
+      return { success: true, debug: true };
+    }
+
     const generation = options?.generation || 'gen2';
     const customFiles = options?.customFiles || null;
     const result = await installFirmware((progress) => {
-      mainWindow.webContents.send('installation-progress', progress);
+      sendToWindow('installation-progress', progress);
     }, generation, customFiles);
     return result;
   } catch (error) {
@@ -215,6 +252,138 @@ ipcMain.handle('install-windows-driver', async () => {
     return { success: false, error: error.message };
   }
 });
+
+// ── Wizard: Home Assistant discovery ────────────────────────────────────────
+
+ipcMain.handle('discover-home-assistant', async () => {
+  try {
+    const { discoverHA } = require('./ha-discovery');
+    return await discoverHA((progress) => sendToWindow('discovery-progress', progress));
+  } catch (error) {
+    console.error('HA discovery error:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+// ── Wizard: Nest discovery ───────────────────────────────────────────────────
+
+ipcMain.handle('discover-nest', async () => {
+  try {
+    const { discoverNest } = require('./nest-discovery');
+    return await discoverNest((progress) => {
+      console.log('[nest-discovery]', JSON.stringify(progress));
+      sendToWindow('discovery-progress', progress);
+    });
+  } catch (error) {
+    console.error('Nest discovery error:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+ipcMain.handle('cancel-discovery', async () => {
+  try {
+    const { cancelHA } = require('./ha-discovery');
+    cancelHA();
+  } catch {}
+  try {
+    const { cancelNest } = require('./nest-discovery');
+    cancelNest();
+  } catch {}
+  return { success: true };
+});
+
+// ── Wizard: Configure Nest (SSH + nleapi, single orchestrated call) ──────────
+//
+// SSH operation order: connect → serial → update URL → verify URL → SSH config last
+// Disabling SSH before verifying the URL would leave the device misconfigured.
+
+ipcMain.handle('configure-nest', async (event, opts) => {
+  // opts: { nestIp, cloudregisterurl, sshMode, newPassword }
+  // cloudregisterurl is null for hosted mode (no URL change needed)
+  // sshMode is 'disable' | 'password' | 'keep'
+  console.log('[configure-nest] starting', { nestIp: opts.nestIp, cloudregisterurl: opts.cloudregisterurl, sshMode: opts.sshMode });
+  const { connectSSH, runCommand, changePassword, disableSSH } = require('./ssh-handler');
+  const { configureNest, configureViaSetupWindow } = require('./nest-configure');
+
+  let conn = null;
+
+  try {
+    // Step 1: Connect via SSH
+    console.log('[configure-nest] connecting SSH...');
+    sendToWindow('config-progress', { step: 'ssh_connect', status: 'active', message: 'Connecting via SSH...' });
+    try {
+      conn = await connectSSH(opts.nestIp);
+    } catch (sshError) {
+      // SSH unavailable — fall back to Phase 0 first-boot setup window
+      console.log('[configure-nest] SSH failed:', sshError.message, '— trying setup window');
+      sendToWindow('config-progress', { step: 'ssh_connect', status: 'skipped', message: `SSH unavailable (${sshError.message}) — trying first-boot window` });
+      sendToWindow('config-progress', { step: 'serial', status: 'active', message: 'Trying first-boot setup window...' });
+
+      const windowResult = await configureViaSetupWindow(opts.nestIp, opts.cloudregisterurl);
+
+      sendToWindow('config-progress', { step: 'serial', status: 'done', message: `Serial: ${windowResult.serial} (via setup window)` });
+      if (opts.cloudregisterurl) {
+        sendToWindow('config-progress', { step: 'url', status: 'done', message: 'Server URL updated and verified (via setup window)' });
+      }
+      // SSH config cannot be performed without SSH
+      if (opts.sshMode !== 'keep') {
+        sendToWindow('config-progress', { step: 'ssh_config', status: 'skipped', message: 'SSH config skipped — SSH was unavailable' });
+      }
+
+      return { success: true, serial: windowResult.serial, cloudregisterurl: windowResult.cloudregisterurl };
+    }
+
+    console.log('[configure-nest] SSH connected');
+    sendToWindow('config-progress', { step: 'ssh_connect', status: 'done', message: 'Connected via SSH' });
+
+    // Step 2: Read serial (hostname = device serial)
+    console.log('[configure-nest] reading serial...');
+    sendToWindow('config-progress', { step: 'serial', status: 'active', message: 'Reading device serial...' });
+    const serial = await runCommand(conn, 'hostname');
+    console.log('[configure-nest] serial:', serial);
+    sendToWindow('config-progress', { step: 'serial', status: 'done', message: `Serial: ${serial}` });
+
+    // Step 3: Update cloudregisterurl (self-hosted only)
+    let confirmedUrl = null;
+    if (opts.cloudregisterurl) {
+      console.log('[configure-nest] updating URL...');
+      sendToWindow('config-progress', { step: 'url', status: 'active', message: 'Updating server URL...' });
+      const result = await configureNest(opts.nestIp, serial, opts.cloudregisterurl);
+      confirmedUrl = result.cloudregisterurl;
+      console.log('[configure-nest] URL updated:', confirmedUrl);
+      sendToWindow('config-progress', { step: 'url', status: 'done', message: 'Server URL updated and verified' });
+    }
+
+    // Step 4: SSH configuration — ALWAYS last (after URL is verified)
+    if (opts.sshMode === 'disable') {
+      console.log('[configure-nest] disabling SSH...');
+      sendToWindow('config-progress', { step: 'ssh_config', status: 'active', message: 'Disabling SSH access...' });
+      await disableSSH(conn);
+      console.log('[configure-nest] SSH disabled');
+      sendToWindow('config-progress', { step: 'ssh_config', status: 'done', message: 'SSH disabled' });
+    } else if (opts.sshMode === 'password' && opts.newPassword) {
+      console.log('[configure-nest] changing password...');
+      sendToWindow('config-progress', { step: 'ssh_config', status: 'active', message: 'Updating SSH password...' });
+      await changePassword(conn, opts.newPassword);
+      console.log('[configure-nest] password changed');
+      sendToWindow('config-progress', { step: 'ssh_config', status: 'done', message: 'SSH password updated' });
+    } else {
+      console.log('[configure-nest] skipping SSH config (mode:', opts.sshMode, ')');
+      sendToWindow('config-progress', { step: 'ssh_config', status: 'skipped', message: 'SSH settings unchanged' });
+    }
+
+    console.log('[configure-nest] done, serial:', serial);
+    return { success: true, serial, cloudregisterurl: confirmedUrl };
+  } catch (error) {
+    console.error('[configure-nest] error:', error.message);
+    sendToWindow('config-progress', { step: 'error', status: 'error', message: error.message });
+    return { success: false, error: error.message };
+  } finally {
+    if (conn) conn.end();
+  }
+});
+
+// ── Firmware file selection ──────────────────────────────────────────────────
 
 ipcMain.handle('select-firmware-file', async (event, fileType) => {
   try {

@@ -35,7 +35,9 @@
     ],
     "asarUnpack": [
       "node_modules/usb/**/*",
-      "resources/firmware/**/*"
+      "resources/firmware/**/*",
+      "**/node_modules/cpu-features/**",
+      "**/node_modules/ssh2/lib/protocol/crypto/build/**"
     ],
     "artifactName": "nolongerevil-installer-${os}-${arch}.${ext}",
     "mac": {
@@ -75,10 +77,13 @@
   "dependencies": {
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
+    "ssh2": "^1.16.0",
     "sudo-prompt": "^9.2.1",
-    "usb": "^2.11.0"
+    "usb": "^2.11.0",
+    "zxcvbn": "^4.4.2"
   },
   "devDependencies": {
+    "dotenv": "^16.4.5",
     "@types/node": "^24.10.1",
     "@types/usb": "^2.0.4",
     "@vitejs/plugin-react": "^4.2.1",

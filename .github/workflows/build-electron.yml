@@ -21,7 +21,7 @@ jobs:
         id: build-firmware
         run: |
           cd firmware/builder
-          ./docker-build.sh --generation both --build-xloader --build-uboot --enable-root-access --hosted --yes --force-build
+          ./docker-build.sh --generation both --build-xloader --build-uboot --enable-root-access --yes --force-build
 
       - name: Check firmware files (built or existing)
         run: |
