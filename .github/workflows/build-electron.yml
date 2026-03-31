@@ -2,7 +2,7 @@ name: Build Electron App
 
 on:
   push:
-    branches: [open-source-prototype]
+    branches: [main, open-source-prototype]
     tags:
       - 'v*'
 
