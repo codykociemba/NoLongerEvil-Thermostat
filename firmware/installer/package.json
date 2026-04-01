@@ -53,10 +53,7 @@
       ],
       "target": [
         {
-          "target": "zip",
-          "arch": [
-            "x64"
-          ]
+          "target": "zip"
         }
       ]
     },
@@ -79,7 +76,7 @@
     "react-dom": "^18.2.0",
     "ssh2": "^1.16.0",
     "sudo-prompt": "^9.2.1",
-    "usb": "^2.11.0",
+    "usb": "^2.16.0",
     "zxcvbn": "^4.4.2"
   },
   "devDependencies": {

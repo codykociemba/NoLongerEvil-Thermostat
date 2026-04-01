@@ -106,7 +106,13 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-latest, ubuntu-latest]
+        include:
+          - os: macos-13
+            arch: x64
+          - os: macos-15
+            arch: arm64
+          - os: ubuntu-latest
+            arch: x64
 
     steps:
       - name: Checkout code
@@ -126,7 +132,7 @@ jobs:
           cache-dependency-path: firmware/installer/package-lock.json
 
       - name: Install libusb + build tooling (Ubuntu)
-        if: matrix.os == 'ubuntu-latest'
+        if: runner.os == 'Linux'
         run: |
           sudo apt-get update
           sudo apt-get install -y \
@@ -136,12 +142,12 @@ jobs:
             build-essential
 
       - name: Install libusb + pkg-config (macOS)
-        if: matrix.os == 'macos-latest'
+        if: runner.os == 'macOS'
         run: |
           brew install libusb pkg-config
 
       - name: Select Xcode
-        if: matrix.os == 'macos-latest'
+        if: runner.os == 'macOS'
         run: sudo xcode-select --switch /Applications/Xcode.app/Contents/Developer
 
       - name: Install dependencies
@@ -153,25 +159,25 @@ jobs:
       - name: Rebuild native modules for Electron
         working-directory: firmware/installer
         run: |
-          npx electron-rebuild -f -w usb
+          npx electron-rebuild -f -w usb --arch ${{ matrix.arch }}
 
       - name: Build Vite app
         working-directory: firmware/installer
         run: npm run build
 
       - name: Prepare Apple API key
-        if: matrix.os == 'macos-latest'
+        if: runner.os == 'macOS'
         run: |
           mkdir -p /tmp/private_keys/
           echo '${{ secrets.API_KEY }}' > /tmp/private_keys/AuthKey_${{ secrets.API_KEY_ID }}.p8
 
       - name: Decode macOS signing certificate
-        if: matrix.os == 'macos-latest'
+        if: runner.os == 'macOS'
         run: |
           echo "${{ secrets.MAC_CERTS }}" | base64 --decode > /tmp/mac-certs.p12
 
       - name: Build, sign and notarize Electron app (macOS)
-        if: matrix.os == 'macos-latest'
+        if: runner.os == 'macOS'
         working-directory: firmware/installer
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -181,18 +187,18 @@ jobs:
           APPLE_API_KEY_ID: ${{ secrets.API_KEY_ID }}
           APPLE_API_ISSUER: ${{ secrets.API_KEY_ISSUER_ID }}
         run: |
-          npx electron-builder --mac --publish onTag
+          npx electron-builder --mac --${{ matrix.arch }} --publish onTag
 
-      - name: Upload macOS x64 artifact
-        if: matrix.os == 'macos-latest'
+      - name: Upload macOS artifact
+        if: runner.os == 'macOS'
         uses: actions/upload-artifact@v4
         with:
-          name: nolongerevil-macos-x64
-          path: firmware/installer/dist/*x64*.zip
+          name: nolongerevil-macos-${{ matrix.arch }}
+          path: firmware/installer/dist/*${{ matrix.arch }}*.zip
           if-no-files-found: error
 
       - name: Build Electron app (Linux)
-        if: matrix.os == 'ubuntu-latest'
+        if: runner.os == 'Linux'
         working-directory: firmware/installer
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -200,7 +206,7 @@ jobs:
           npx electron-builder --linux AppImage --publish onTag
 
       - name: Upload Linux AppImage artifact
-        if: matrix.os == 'ubuntu-latest'
+        if: runner.os == 'Linux'
         uses: actions/upload-artifact@v4
         with:
           name: nolongerevil-linux-appimage
