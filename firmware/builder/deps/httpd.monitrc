@@ -5,7 +5,7 @@
 #
 # Daemon cycles are 5 seconds each so to check every minute,
 # its 12 cycles. So 3 minutes is 12*3 = 36
-check process httpd matching /usr/sbin/httpd
+check process httpd matching /bin/httpd
   start program = "/etc/init.d/nleapi monit_start" with timeout 20 seconds
   stop program = "/etc/init.d/nleapi monit_stop"
   if 5 restarts within 100 cycles then unmonitor
