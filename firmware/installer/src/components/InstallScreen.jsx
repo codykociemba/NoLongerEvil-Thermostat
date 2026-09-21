@@ -6,6 +6,7 @@ const INSTALL_STAGES = {
   FLASHING_XLOAD: 'xload',
   FLASHING_UBOOT: 'uboot',
   FLASHING_KERNEL: 'kernel',
+  FLASHING_ROOTFS: 'rootfs',
   COMPLETE: 'complete',
 };
 
@@ -44,6 +45,9 @@ function InstallScreen({ systemInfo, generation, customFiles, onSuccess, onError
       } else if (progressData.stage === 'kernel') {
         setDeviceDetected(true);
         setStage(INSTALL_STAGES.FLASHING_KERNEL);
+      } else if (progressData.stage === 'rootfs') {
+        setDeviceDetected(true);
+        setStage(INSTALL_STAGES.FLASHING_ROOTFS);
       } else if (progressData.stage === 'complete') {
         setDeviceDetected(true);
         setStage(INSTALL_STAGES.COMPLETE);
@@ -143,6 +147,8 @@ function InstallScreen({ systemInfo, generation, customFiles, onSuccess, onError
         return 'Flashing u-boot...';
       case INSTALL_STAGES.FLASHING_KERNEL:
         return 'Flashing Linux kernel...';
+      case INSTALL_STAGES.FLASHING_ROOTFS:
+        return 'Flashing Root FS.....';
       case INSTALL_STAGES.COMPLETE:
         return message || 'Installation complete!';
       default:
@@ -183,6 +189,7 @@ function InstallScreen({ systemInfo, generation, customFiles, onSuccess, onError
                         {customFiles.xload && <li>{customFiles.xload.split('/').pop()}</li>}
                         {customFiles.uboot && <li>{customFiles.uboot.split('/').pop()}</li>}
                         {customFiles.uimage && <li>{customFiles.uimage.split('/').pop()}</li>}
+                        {customFiles.rootfs && <li>{customFiles.rootfs.split('/').pop()}</li>}
                       </ul>
                     </div>
                   </div>
@@ -296,6 +303,12 @@ function InstallScreen({ systemInfo, generation, customFiles, onSuccess, onError
                   <div className={`w-2 h-2 rounded-full ${stage === INSTALL_STAGES.FLASHING_KERNEL ? 'bg-primary-500 animate-pulse' : progress >= 75 ? 'bg-green-500' : 'bg-slate-600'}`}></div>
                   <span className={progress >= 75 ? 'text-white' : 'text-slate-500'}>Linux kernel (uImage)</span>
                 </div>
+                {customFiles?.rootfs && (
+                  <div className="flex items-center gap-3 text-sm">
+                    <div className={`w-2 h-2 rounded-full ${stage === INSTALL_STAGES.FLASHING_ROOTFS ? 'bg-primary-500 animate-pulse' : progress >= 85 ? 'bg-green-500' : 'bg-slate-600'}`}></div>
+                    <span className={progress >= 85 ? 'text-white' : 'text-slate-500'}>Root Filesystem</span>
+                  </div>
+                )}
               </div>
             </div>
 

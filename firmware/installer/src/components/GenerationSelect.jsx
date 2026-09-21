@@ -8,7 +8,8 @@ function GenerationSelect({ onNext, onBack }) {
   const [customFiles, setCustomFiles] = useState({
     xload: null,
     uboot: null,
-    uimage: null
+    uimage: null,
+    rootfs: null
   });
 
   const handleFileSelect = async (fileType) => {
@@ -184,6 +185,21 @@ function GenerationSelect({ onNext, onBack }) {
                   </div>
                   <button
                     onClick={() => handleFileSelect('uimage')}
+                    className="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded text-sm transition-colors"
+                  >
+                    Browse
+                  </button>
+                </div>
+
+                <div className="flex items-center gap-3 p-3 bg-slate-700/30 rounded-lg">
+                  <div className="flex-1">
+                    <label className="text-sm font-medium text-slate-300">RootFS</label>
+                    <p className="text-xs text-slate-500 mt-0.5">
+                      {customFiles.rootfs ? customFiles.rootfs.split('/').pop() : 'No file selected'}
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => handleFileSelect('rootfs')}
                     className="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded text-sm transition-colors"
                   >
                     Browse

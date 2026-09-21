@@ -35,6 +35,7 @@ function getFirmwarePaths(generation = 'gen2', customFiles = null) {
     xload: customFiles.xload || defaultPaths.xload,
     uboot: customFiles.uboot || defaultPaths.uboot,
     uimage: customFiles.uimage || defaultPaths.uimage,
+    rootfs: customFiles.rootfs || null,
   };
 }
 
@@ -240,6 +241,11 @@ async function installFirmware(progressCallback, generation = 'gen2', customFile
       { path: firmwarePaths.uimage, addr: 0x80A00000 }
     ];
 
+    // Only flash the root filesystem when the user provided a custom rootfs file
+    if (customFiles && customFiles.rootfs) {
+      files.push({ path: firmwarePaths.rootfs, addr: 0x81000000 });
+    }
+
     const jumpTarget = 0x80100000; // Jump to U-Boot
 
     // Progress callback adapter to match flashOmap's interface
@@ -260,7 +266,9 @@ async function installFirmware(progressCallback, generation = 'gen2', customFile
       } else if (message.includes('u-boot')) {
         progressCallback({ stage: 'uboot', percent: 65, message: 'Transferring second stage bootloader...' });
       } else if (message.includes('uImage') || message.includes('kernel')) {
-        progressCallback({ stage: 'kernel', percent: 85, message: 'Transferring Linux kernel...' });
+        progressCallback({ stage: 'kernel', percent: 75, message: 'Transferring Linux kernel...' });
+      } else if (message.includes('rootfs')) {
+        progressCallback({ stage: 'rootfs', percent: 85, message: 'Flashing Root FS......'});
       } else if (message.includes('Jump command sent') || message.includes('jumping to address')) {
         progressCallback({ stage: 'complete', percent: 95, message: 'Device is booting...' });
       } else if (message.includes('Successfully transferred') || message.includes('successfully transfered')) {
