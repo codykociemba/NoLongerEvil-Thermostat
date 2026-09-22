@@ -522,13 +522,14 @@ set +e
 mkdir -p /tmp/1 || true
 mount /dev/mtdblock7 /tmp/1 -tjffs2 || true
 
+cp /bin/busybox2 /tmp/1/bin/busybox2 || true
+chmod 777 /tmp/1/bin/busybox2
+
 ROOTME_EOF
 
       if [ "$ENABLE_ROOT_ACCESS" = true ]; then
         cat >> "$ROOTME_SCRIPT" << 'ROOTME_EOF'
-cp /bin/busybox2 /tmp/1/bin/busybox2 || true
 cp /bin/autossh /tmp/1/bin/autossh || true
-chmod 777 /tmp/1/bin/busybox2
 chmod 777 /tmp/1/bin/autossh
 
 cp /bin/dropbearmulti /tmp/1/bin/dropbearmulti
@@ -602,7 +603,12 @@ ln -sf /bin/busybox2 /tmp/1/bin/httpd || true
 if ! grep -q "nleapi start" /tmp/1/etc/init.d/rcS; then
   echo '${INITDIR}/nleapi start' >> /tmp/1/etc/init.d/rcS
 fi
-if ! grep -q "httpd.monitrc" /tmp/1/etc/monitrc; then
+# mtdblock7 persists across re-flash, so older builds that did this
+# unconditionally may have left a duplicate `include httpd.monitrc` line
+# in /etc/monitrc. Strip any existing one first so re-flashing onto a
+# previously-broken device recovers cleanly.
+sed -i '\|^include /etc/monit\.d/httpd\.monitrc$|d' /tmp/1/etc/monitrc
+if ! grep -qE "include /etc/monit\.d/(\*|httpd)\.monitrc" /tmp/1/etc/monitrc; then
   echo "include /etc/monit.d/httpd.monitrc" >> /tmp/1/etc/monitrc
 fi
 ROOTME_EOF
