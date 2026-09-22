@@ -152,9 +152,7 @@ jobs:
 
       - name: Install dependencies
         working-directory: firmware/installer
-        run: |
-          rm -rf node_modules package-lock.json
-          npm install
+        run: npm ci
 
       - name: Rebuild native modules for Electron
         working-directory: firmware/installer
