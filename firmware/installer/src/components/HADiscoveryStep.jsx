@@ -2,6 +2,14 @@ import { useState, useEffect, useRef } from 'react';
 
 const NLE_PORT = '9543';
 
+// Accept "1.2.3.4", "1.2.3.4:9543" or a pasted "http://1.2.3.4:9543/entry"
+// (issue #194). Anything else returns null.
+function buildServerUrl(address, port) {
+  const m = address.trim().match(/^(?:https?:\/\/)*((?:\d{1,3}\.){3}\d{1,3})(?::(\d{1,5}))?(?:\/entry)?\/?$/i);
+  const p = m && (m[2] || port.trim());
+  return m && /^\d{1,5}$/.test(p) ? `http://${m[1]}:${p}/entry` : null;
+}
+
 function HADiscoveryStep({ onNext, onBack }) {
   const [tab, setTab] = useState('ha'); // 'ha' | 'server'
 
@@ -70,17 +78,10 @@ function HADiscoveryStep({ onNext, onBack }) {
     setTab(newTab);
   };
 
-  const canContinue = tab === 'ha'
-    ? haIp.trim().length > 0
-    : serverIp.trim().length > 0 && serverPort.trim().length > 0;
+  const url = tab === 'ha' ? buildServerUrl(haIp, NLE_PORT) : buildServerUrl(serverIp, serverPort);
+  const canContinue = url !== null;
 
-  const handleContinue = () => {
-    if (tab === 'ha') {
-      onNext(`http://${haIp.trim()}:${NLE_PORT}/entry`);
-    } else {
-      onNext(`http://${serverIp.trim()}:${serverPort.trim()}/entry`);
-    }
-  };
+  const handleContinue = () => onNext(url);
 
   return (
     <div className="flex items-center justify-center min-h-full p-8">
@@ -172,9 +173,9 @@ function HADiscoveryStep({ onNext, onBack }) {
                 />
               </div>
 
-              {haIp.trim() && (
+              {url && (
                 <p className="text-xs text-slate-500 font-mono">
-                  http://{haIp.trim()}:{NLE_PORT}/entry
+                  {url}
                 </p>
               )}
             </div>
@@ -210,9 +211,9 @@ function HADiscoveryStep({ onNext, onBack }) {
                 </div>
               </div>
 
-              {serverIp.trim() && serverPort.trim() && (
+              {url && (
                 <p className="text-xs text-slate-500 font-mono">
-                  http://{serverIp.trim()}:{serverPort.trim()}/entry
+                  {url}
                 </p>
               )}
             </div>
