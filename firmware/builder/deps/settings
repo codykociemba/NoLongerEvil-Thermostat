@@ -30,15 +30,25 @@ get_cloudregisterurl() {
 }
 valid_ip_port() {
   local ip=${1:-NO_IP_PROVIDED}
+  # Host name or IPv4, optional port, nothing else (issue #237)
+  case "$ip" in *[!A-Za-z0-9.:-]*|*:*:*|*:|:*) return 1 ;; esac
   local port=$(echo "$ip" | busybox2 sed -n 's/.*:\([0-9]\+\)$/\1/p')
   ip=$(echo "$ip" | busybox2 sed 's/:.*//')
   o1=$(echo "$ip" | busybox2 cut -d. -f1)
   o2=$(echo "$ip" | busybox2 cut -d. -f2)
   o3=$(echo "$ip" | busybox2 cut -d. -f3)
   o4=$(echo "$ip" | busybox2 cut -d. -f4)
-  [[ ${o1} -gt 255 || ${o2} -gt 255 || ${o3} -gt 255 || ${o4} -gt 255 ]] && return 1
+  case "$ip" in
+    *[!0-9.]*) ;;
+    *.*.*.*.*) return 1 ;;
+    *.*.*.*)
+      for o in "$o1" "$o2" "$o3" "$o4"; do
+        [ "$o" -le 255 ] 2>/dev/null || return 1
+      done ;;
+    *) return 1 ;;
+  esac
   if [ -n "$port" ]; then
-    [[ ${port} -lt 1 || ${port} -gt 65535 ]] && return 1
+    [ "$port" -ge 1 ] 2>/dev/null && [ "$port" -le 65535 ] || return 1
   fi
   return 0
 }
@@ -122,7 +132,7 @@ if [[ "$REQUEST_METHOD" == "POST" ]]; then
   if [[ -n "$NEW_URL" ]]; then
     NEW_SCHEME="${NEW_URL%%://*}"
     NEW_SERVER="${NEW_URL#*://}"
-    if valid_ip_port "$NEW_SERVER"; then
+    if [[ "$NEW_SCHEME" == "http" || "$NEW_SCHEME" == "https" ]] && valid_ip_port "$NEW_SERVER"; then
       log_writer "Valid IP address/port. $NEW_SERVER"
       log_writer "Creating backup of existing."
       log_writer "  from : $TARGET_FILE"
