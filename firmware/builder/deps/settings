@@ -53,6 +53,28 @@ valid_ip_port() {
   fi
   return 0
 }
+valid_endpoint() {
+  local url=${1:-}
+  local scheme="${url%%://*}"
+  local server="${url#*://}"
+  local path=
+  case "$scheme" in
+    http|https) ;;
+    *) return 1 ;;
+  esac
+  # The self-hosted server posts API_ORIGIN as configured, so a path may
+  # follow the host. Validate host[:port] and the path separately; only
+  # characters that are safe in client.config are allowed, since only & and |
+  # are escaped when the value is written (issue #237).
+  case "$server" in
+    */*) path="${server#*/}"; server="${server%%/*}" ;;
+  esac
+  valid_ip_port "$server" || return 1
+  case "$path" in
+    *[!A-Za-z0-9._~/-]*) return 1 ;;
+  esac
+  return 0
+}
 check_for_api_key() {
  if [[ -z "${API_KEY}" ]]; then
   log_writer "Missing API key file. Creating it."
@@ -133,7 +155,9 @@ if [[ "$REQUEST_METHOD" == "POST" ]]; then
   if [[ -n "$NEW_URL" ]]; then
     NEW_SCHEME="${NEW_URL%%://*}"
     NEW_SERVER="${NEW_URL#*://}"
-    if [[ "$NEW_SCHEME" == "http" || "$NEW_SCHEME" == "https" ]] && valid_ip_port "$NEW_SERVER"; then
+    # Only http(s), an IPv4 address or a host name, an optional port and a
+    # path of safe characters; anything else must not reach client.config.
+    if valid_endpoint "$NEW_URL"; then
       log_writer "Valid IP address/port. $NEW_SERVER"
       log_writer "Creating backup of existing."
       log_writer "  from : $TARGET_FILE"
