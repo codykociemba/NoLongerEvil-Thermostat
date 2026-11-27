@@ -40,6 +40,7 @@
       "**/node_modules/ssh2/lib/protocol/crypto/build/**"
     ],
     "artifactName": "nolongerevil-installer-${os}-${arch}.${ext}",
+    "afterPack": "build/linux-no-sandbox.js",
     "mac": {
       "category": "public.app-category.utilities",
       "hardenedRuntime": true,
