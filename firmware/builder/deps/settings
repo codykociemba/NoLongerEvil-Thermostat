@@ -33,6 +33,7 @@ valid_ip_port() {
   # Host name or IPv4, optional port, nothing else (issue #237)
   case "$ip" in *[!A-Za-z0-9.:-]*|*:*:*|*:|:*) return 1 ;; esac
   local port=$(echo "$ip" | busybox2 sed -n 's/.*:\([0-9]\+\)$/\1/p')
+  case "$ip" in *:*) [ -n "$port" ] || return 1 ;; esac
   ip=$(echo "$ip" | busybox2 sed 's/:.*//')
   o1=$(echo "$ip" | busybox2 cut -d. -f1)
   o2=$(echo "$ip" | busybox2 cut -d. -f2)

@@ -2,12 +2,17 @@ import { useState, useEffect, useRef } from 'react';
 
 const NLE_PORT = '9543';
 
-// Accept "1.2.3.4", "1.2.3.4:9543" or a pasted "http://1.2.3.4:9543/entry"
-// (issue #194). Anything else returns null.
+// Accept "192.168.1.100", "192.168.1.100:9543", "nle.example.com:9543"
+// or a pasted "http://host:port/entry" (issue #194). Anything else returns null.
 function buildServerUrl(address, port) {
-  const m = address.trim().match(/^(?:https?:\/\/)*((?:\d{1,3}\.){3}\d{1,3})(?::(\d{1,5}))?(?:\/entry)?\/?$/i);
+  const m = address.trim().match(/^(?:https?:\/\/)?([A-Za-z0-9](?:[A-Za-z0-9.-]*[A-Za-z0-9])?)(?::(\d{1,5}))?(?:\/entry)?\/?$/i);
   const p = m && (m[2] || port.trim());
-  return m && /^\d{1,5}$/.test(p) ? `http://${m[1]}:${p}/entry` : null;
+  if (!m || !/^\d{1,5}$/.test(p)) return null;
+  const portNum = Number(p);
+  if (portNum < 1 || portNum > 65535) return null;
+  const labels = m[1].split('.');
+  if (labels.every((l) => /^\d+$/.test(l)) && (labels.length !== 4 || labels.some((l) => Number(l) > 255))) return null;
+  return `http://${m[1]}:${portNum}/entry`;
 }
 
 function HADiscoveryStep({ onNext, onBack }) {
